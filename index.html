@@ -110,35 +110,24 @@
             font-size: 20px;
         }
 
-        /* ألوان مخصصة للأزرار */
-        .btn-gift {
-            background: linear-gradient(135deg, #2481cc, #1a5f9e);
-            box-shadow: 0 6px 15px rgba(36, 129, 204, 0.3);
-            border: none;
-        }
+        .btn-gift { background: linear-gradient(135deg, #2481cc, #1a5f9e); box-shadow: 0 6px 15px rgba(36, 129, 204, 0.3); border: none; }
+        .btn-username { background: linear-gradient(135deg, #2ea6ff, #1d8cda); box-shadow: 0 6px 15px rgba(46, 166, 255, 0.3); border: none; }
+        .btn-ad { background: linear-gradient(135deg, #ff5e5e, #d93d3d); box-shadow: 0 6px 15px rgba(255, 94, 94, 0.3); border: none; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-8px); } 100% { transform: translateY(0px); } }
         
-        .btn-username {
-            background: linear-gradient(135deg, #2ea6ff, #1d8cda);
-            box-shadow: 0 6px 15px rgba(46, 166, 255, 0.3);
-            border: none;
-        }
-
-        .btn-ad {
-            background: linear-gradient(135deg, #ff5e5e, #d93d3d);
-            box-shadow: 0 6px 15px rgba(255, 94, 94, 0.3);
-            border: none;
-        }
-
-        /* تأثيرات الحركة */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        @keyframes float {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-8px); }
-            100% { transform: translateY(0px); }
+        /* صندوق التشخيص */
+        #debug-box {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #ff5e5e;
+            text-align: center;
+            background: rgba(255, 0, 0, 0.1);
+            padding: 10px;
+            border-radius: 10px;
+            display: none;
+            word-break: break-all;
         }
     </style>
 </head>
@@ -164,6 +153,9 @@
                 <span class="arrow">‹</span>
             </button>
         </div>
+
+        <!-- صندوق لعرض الأخطاء إذا حدثت -->
+        <div id="debug-box"></div>
     </div>
 
     <script>
@@ -172,7 +164,6 @@
         tg.ready();
         tg.expand();
         
-        // تفعيل الوضع الليلي/النهاري تلقائياً
         if (tg.colorScheme === 'light') {
             document.documentElement.style.setProperty('--tg-theme-bg-color', '#f4f6fa');
             document.documentElement.style.setProperty('--tg-theme-text-color', '#1a202c');
@@ -182,11 +173,28 @@
 
         // دالة إرسال الأمر للبوت
         function sendAction(action) {
-            if (tg.HapticFeedback) {
-                tg.HapticFeedback.impactOccurred('medium');
+            try {
+                if (tg.HapticFeedback) {
+                    tg.HapticFeedback.impactOccurred('medium');
+                }
+                
+                // إرسال البيانات
+                if (typeof tg.sendData === 'function') {
+                    tg.sendData(JSON.stringify({ action: action }));
+                    tg.close();
+                } else {
+                    showDebug("خطأ: دالة sendData غير متوفرة. يرجى فتح التطبيق من تيليجرام.");
+                }
+            } catch (error) {
+                showDebug("حدث خطأ أثناء الإرسال: " + error.message);
             }
-            tg.sendData(JSON.stringify({ action: action }));
-            tg.close();
+        }
+
+        // دالة لإظهار الأخطاء على الشاشة
+        function showDebug(msg) {
+            const box = document.getElementById('debug-box');
+            box.style.display = 'block';
+            box.innerText = msg;
         }
     </script>
 </body>
