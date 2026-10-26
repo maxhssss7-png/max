@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>X Nasa App - V2</title>
+    <title>X Nasa App - V3</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800&display=swap');
@@ -16,8 +16,8 @@
         body {
             font-family: 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: var(--tg-theme-bg-color, #0f172a);
-            background-image: radial-gradient(circle at top right, rgba(36, 129, 204, 0.15), transparent 40%),
-                              radial-gradient(circle at bottom left, rgba(255, 87, 87, 0.1), transparent 40%);
+            background-image: radial-gradient(circle at top right, rgba(46, 166, 255, 0.15), transparent 40%),
+                              radial-gradient(circle at bottom left, rgba(255, 184, 108, 0.1), transparent 40%);
             color: var(--tg-theme-text-color, #ffffff);
             margin: 0;
             padding: 20px;
@@ -41,14 +41,14 @@
         .logo-container {
             width: 90px;
             height: 90px;
-            background: linear-gradient(135deg, #2ea6ff, #1a5f9e); /* لون جديد */
-            border-radius: 50%; /* شكل دائري */
+            background: linear-gradient(135deg, #ff5e5e, #d93d3d); /* لون أحمر جديد */
+            border-radius: 30%; 
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 45px;
             margin-bottom: 20px;
-            box-shadow: 0 10px 25px rgba(46, 166, 255, 0.4);
+            box-shadow: 0 10px 25px rgba(255, 94, 94, 0.4);
             animation: float 3s ease-in-out infinite;
         }
 
@@ -57,7 +57,7 @@
             font-weight: 800;
             margin: 0 0 5px 0;
             text-align: center;
-            background: linear-gradient(90deg, #ff5e5e, #ffb86c); /* لون جديد */
+            background: linear-gradient(90deg, #2ea6ff, #a0c4ff); /* لون أزرق جديد */
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
@@ -111,9 +111,10 @@
             font-size: 20px;
         }
 
-        .btn-gift { background: linear-gradient(135deg, #2481cc, #1a5f9e); box-shadow: 0 6px 15px rgba(36, 129, 204, 0.3); border: none; }
-        .btn-username { background: linear-gradient(135deg, #2ea6ff, #1d8cda); box-shadow: 0 6px 15px rgba(46, 166, 255, 0.3); border: none; }
-        .btn-ad { background: linear-gradient(135deg, #ff5e5e, #d93d3d); box-shadow: 0 6px 15px rgba(255, 94, 94, 0.3); border: none; }
+        /* ألوان الأزرار الجديدة */
+        .btn-gift { background: linear-gradient(135deg, #2ea6ff, #1d8cda); box-shadow: 0 6px 15px rgba(46, 166, 255, 0.3); border: none; }
+        .btn-username { background: linear-gradient(135deg, #ffb86c, #f39c12); box-shadow: 0 6px 15px rgba(255, 184, 108, 0.3); border: none; }
+        .btn-ad { background: linear-gradient(135deg, #4cd137, #44bd32); box-shadow: 0 6px 15px rgba(76, 209, 55, 0.3); border: none; }
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-8px); } 100% { transform: translateY(0px); } }
@@ -133,9 +134,9 @@
 </head>
 <body>
     <div class="container">
-        <div class="logo-container">🛸</div> <!-- أيقونة جديدة -->
+        <div class="logo-container">🔥</div> <!-- أيقونة جديدة -->
         <h1>X Nasa App</h1>
-        <p class="subtitle">النسخة المطورة - اختر القسم</p> <!-- نص جديد -->
+        <p class="subtitle">اختر القسم الذي تريد النشر فيه</p> 
         
         <div class="button-container">
             <button class="app-button btn-gift" onclick="sendAction('post_gift')">
@@ -168,17 +169,21 @@
             document.documentElement.style.setProperty('--tg-theme-secondary-bg-color', '#ffffff');
         }
 
+        // ✅ دالة الإرسال الجديدة باستخدام الروابط المباشرة
         function sendAction(action) {
             try {
                 if (tg.HapticFeedback) {
                     tg.HapticFeedback.impactOccurred('medium');
                 }
-                if (typeof tg.sendData === 'function') {
-                    tg.sendData(JSON.stringify({ action: action }));
-                    tg.close();
-                } else {
-                    showDebug("خطأ: دالة sendData غير متوفرة.");
-                }
+                
+                // اسم البوت الخاص بك (بدون @)
+                const botUsername = "rqlbot"; 
+                
+                // فتح البوت مع الأمر المباشر
+                const botUrl = `https://t.me/${botUsername}?start=${action}`;
+                
+                tg.openTelegramLink(botUrl);
+                tg.close();
             } catch (error) {
                 showDebug("حدث خطأ: " + error.message);
             }
