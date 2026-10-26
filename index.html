@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>X Nasa App</title>
+    <title>X Nasa App - V2</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800&display=swap');
@@ -41,14 +41,14 @@
         .logo-container {
             width: 90px;
             height: 90px;
-            background: linear-gradient(135deg, #2481cc, #1a5f9e);
-            border-radius: 25px;
+            background: linear-gradient(135deg, #2ea6ff, #1a5f9e); /* لون جديد */
+            border-radius: 50%; /* شكل دائري */
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 45px;
             margin-bottom: 20px;
-            box-shadow: 0 10px 25px rgba(36, 129, 204, 0.4);
+            box-shadow: 0 10px 25px rgba(46, 166, 255, 0.4);
             animation: float 3s ease-in-out infinite;
         }
 
@@ -57,7 +57,7 @@
             font-weight: 800;
             margin: 0 0 5px 0;
             text-align: center;
-            background: linear-gradient(90deg, #ffffff, #a0c4ff);
+            background: linear-gradient(90deg, #ff5e5e, #ffb86c); /* لون جديد */
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
@@ -67,6 +67,7 @@
             color: var(--tg-theme-hint-color, #8b9bb4);
             margin: 0 0 35px 0;
             text-align: center;
+            font-weight: bold;
         }
 
         .button-container {
@@ -117,7 +118,6 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-8px); } 100% { transform: translateY(0px); } }
         
-        /* صندوق التشخيص */
         #debug-box {
             margin-top: 20px;
             font-size: 12px;
@@ -133,9 +133,9 @@
 </head>
 <body>
     <div class="container">
-        <div class="logo-container">🚀</div>
+        <div class="logo-container">🛸</div> <!-- أيقونة جديدة -->
         <h1>X Nasa App</h1>
-        <p class="subtitle">اختر القسم الذي تريد النشر فيه</p>
+        <p class="subtitle">النسخة المطورة - اختر القسم</p> <!-- نص جديد -->
         
         <div class="button-container">
             <button class="app-button btn-gift" onclick="sendAction('post_gift')">
@@ -153,13 +153,10 @@
                 <span class="arrow">‹</span>
             </button>
         </div>
-
-        <!-- صندوق لعرض الأخطاء إذا حدثت -->
         <div id="debug-box"></div>
     </div>
 
     <script>
-        // تهيئة التطبيق
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
@@ -171,26 +168,22 @@
             document.documentElement.style.setProperty('--tg-theme-secondary-bg-color', '#ffffff');
         }
 
-        // دالة إرسال الأمر للبوت
         function sendAction(action) {
             try {
                 if (tg.HapticFeedback) {
                     tg.HapticFeedback.impactOccurred('medium');
                 }
-                
-                // إرسال البيانات
                 if (typeof tg.sendData === 'function') {
                     tg.sendData(JSON.stringify({ action: action }));
                     tg.close();
                 } else {
-                    showDebug("خطأ: دالة sendData غير متوفرة. يرجى فتح التطبيق من تيليجرام.");
+                    showDebug("خطأ: دالة sendData غير متوفرة.");
                 }
             } catch (error) {
-                showDebug("حدث خطأ أثناء الإرسال: " + error.message);
+                showDebug("حدث خطأ: " + error.message);
             }
         }
 
-        // دالة لإظهار الأخطاء على الشاشة
         function showDebug(msg) {
             const box = document.getElementById('debug-box');
             box.style.display = 'block';
