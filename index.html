@@ -3,143 +3,97 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>اصطد الهدايا</title>
+<title>الحاسبة</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-  :root { --bg:#1b1033; --text:#f3ecff; --muted:#a995d6; --accent:#ff7ab8; }
+  :root { --bg:#12151c; --key:#222834; --op:#3b5bdb; --fn:#394152; --text:#f2f4f8; --muted:#8b95a8; }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body { margin:0; height:100%; background:var(--bg); color:var(--text);
-    font-family:system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif; overflow:hidden; touch-action:none; user-select:none; }
-  canvas { position:fixed; inset:0; width:100%; height:100%; display:block; }
-  #hud { position:fixed; inset:0 0 auto 0; display:flex; justify-content:space-between; z-index:2; pointer-events:none;
-    padding:calc(env(safe-area-inset-top,0px) + 14px) 18px 0; font-size:20px; font-weight:700; }
-  #end { position:fixed; inset:0; display:none; flex-direction:column; align-items:center; justify-content:center;
-    gap:14px; background:rgba(27,16,51,.94); z-index:3; text-align:center; }
-  #end.show { display:flex; }
-  #end h1 { margin:0; font-size:26px; }
-  #final { font-size:64px; font-weight:800; color:var(--accent); line-height:1; }
-  #best { margin:0; color:var(--muted); }
-  button { font:inherit; font-weight:700; border:0; border-radius:14px; padding:14px 34px;
-    background:var(--accent); color:#2a0a1c; cursor:pointer; }
-  button:focus-visible { outline:3px solid #fff; outline-offset:3px; }
+    font-family:system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif; user-select:none; touch-action:manipulation; }
+  #app { height:100%; display:flex; flex-direction:column; max-width:480px; margin:0 auto;
+    padding:calc(env(safe-area-inset-top,0px) + 12px) 14px calc(env(safe-area-inset-bottom,0px) + 14px); }
+  #screen { flex:1; display:flex; flex-direction:column; justify-content:flex-end; align-items:flex-end;
+    direction:ltr; padding:10px 8px 18px; overflow:hidden; }
+  #expr { color:var(--muted); font-size:22px; min-height:28px; word-break:break-all; text-align:right; }
+  #out { font-size:64px; font-weight:600; line-height:1.1; max-width:100%; overflow-x:auto; white-space:nowrap; }
+  #keys { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; direction:ltr; }
+  button { font:inherit; font-size:26px; font-weight:500; border:0; border-radius:20px; height:68px;
+    background:var(--key); color:var(--text); cursor:pointer; transition:transform .06s; }
+  button:active { transform:scale(.94); }
+  button:focus-visible { outline:3px solid #fff; outline-offset:2px; }
+  #credit { text-align:center; color:var(--muted); font-size:13px; margin-top:12px; direction:ltr; }
+  .fn { background:var(--fn); } .op { background:var(--op); } .zero { grid-column:span 2; }
 </style>
 </head>
 <body>
-<div id="hud"><span id="lives">❤️❤️❤️</span><span>النقاط: <span id="score">0</span></span></div>
-<canvas id="c"></canvas>
-<div id="end">
-  <h1>انتهت اللعبة</h1>
-  <div id="final">0</div>
-  <p id="best"></p>
-  <button id="again">العب مرة أخرى</button>
+<div id="app">
+  <div id="screen"><div id="expr"></div><div id="out">0</div></div>
+  <div id="keys">
+    <button class="fn" data-k="C">C</button>
+    <button class="fn" data-k="±">±</button>
+    <button class="fn" data-k="%">%</button>
+    <button class="op" data-k="÷">÷</button>
+    <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
+    <button class="op" data-k="×">×</button>
+    <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
+    <button class="op" data-k="−">−</button>
+    <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
+    <button class="op" data-k="+">+</button>
+    <button class="zero" data-k="0">0</button>
+    <button data-k=".">.</button>
+    <button class="op" data-k="=">=</button>
+  </div>
+  <div id="credit">X Nasa - @sstss</div>
 </div>
 
 <script>
-// ===== إعدادات يمكنك تغييرها =====
-const LIVES = 3;                          // عدد المحاولات
-const GIFTS = ['🎁', '💎', '🧸', '🌹', '🏆']; // الهدايا (كل واحدة نقطة)
-const BOMB  = '💣';                       // تفقد قلباً
-// =================================
-
 const tg = window.Telegram && Telegram.WebApp;
-if (tg) { tg.ready(); tg.expand(); try { tg.setHeaderColor('#1b1033'); tg.setBackgroundColor('#1b1033'); } catch(e){} }
-const haptic = t => { try { tg.HapticFeedback.impactOccurred(t); } catch(e){} };
+if (tg) { tg.ready(); tg.expand(); try { tg.setHeaderColor('#12151c'); tg.setBackgroundColor('#12151c'); } catch(e){} }
+const tap = () => { try { tg.HapticFeedback.selectionChanged(); } catch(e){} };
 
-const cv = document.getElementById('c'), ctx = cv.getContext('2d');
-let W, H;
-function resize() {
-  const d = window.devicePixelRatio || 1;
-  W = innerWidth; H = innerHeight;
-  cv.width = W * d; cv.height = H * d;
-  ctx.setTransform(d, 0, 0, d, 0, 0);
-}
-addEventListener('resize', resize); resize();
+const out = document.getElementById('out'), exprEl = document.getElementById('expr');
+let cur = '0', prev = null, op = null, fresh = false;
 
-let s, items, basket, spawnT, time;
-
-function reset() {
-  s = { score: 0, lives: LIVES, over: false };
-  items = []; spawnT = 0; time = 0;
-  basket = { x: W / 2, w: 90, h: 34 };
-  document.getElementById('end').classList.remove('show');
-  hud();
+const calc = (a, b, o) => {
+  a = parseFloat(a); b = parseFloat(b);
+  let r = o === '+' ? a + b : o === '−' ? a - b : o === '×' ? a * b : (b === 0 ? NaN : a / b);
+  return isFinite(r) ? String(+r.toPrecision(12)) : 'خطأ';
+};
+function show() {
+  out.textContent = cur;
+  out.style.fontSize = cur.length > 12 ? '36px' : cur.length > 8 ? '48px' : '64px';
+  exprEl.textContent = prev !== null && op ? prev + ' ' + op : '';
 }
-function hud() {
-  document.getElementById('score').textContent = s.score;
-  document.getElementById('lives').textContent = '❤️'.repeat(Math.max(0, s.lives)) + '🖤'.repeat(LIVES - Math.max(0, s.lives));
+function press(k) {
+  tap();
+  if (cur === 'خطأ' && k !== 'C') return;
+  if (/\d/.test(k)) {
+    cur = (cur === '0' || fresh) ? k : cur + k; fresh = false;
+  } else if (k === '.') {
+    if (fresh) { cur = '0.'; fresh = false; } else if (!cur.includes('.')) cur += '.';
+  } else if (k === 'C') {
+    cur = '0'; prev = null; op = null; fresh = false;
+  } else if (k === '±') {
+    if (cur !== '0') cur = cur.startsWith('-') ? cur.slice(1) : '-' + cur;
+  } else if (k === '%') {
+    cur = String(+(parseFloat(cur) / 100).toPrecision(12));
+  } else if (k === '=') {
+    if (op !== null && prev !== null) { cur = calc(prev, cur, op); prev = null; op = null; fresh = true; }
+  } else { // + − × ÷
+    if (op !== null && prev !== null && !fresh) cur = calc(prev, cur, op);
+    prev = cur; op = k; fresh = true;
+  }
+  show();
 }
-
-function move(e) {
-  const x = e.touches ? e.touches[0].clientX : e.clientX;
-  basket.x = Math.min(W - basket.w / 2, Math.max(basket.w / 2, x));
-}
-addEventListener('touchstart', move, { passive: true });
-addEventListener('touchmove', move, { passive: true });
-addEventListener('pointermove', move);
-addEventListener('keydown', e => {
-  if (e.code === 'ArrowLeft')  basket.x = Math.max(basket.w / 2, basket.x - 30);
-  if (e.code === 'ArrowRight') basket.x = Math.min(W - basket.w / 2, basket.x + 30);
+document.getElementById('keys').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (b) press(b.dataset.k);
 });
-
-function spawn() {
-  const bomb = Math.random() < Math.min(0.15 + time * 0.004, 0.35);
-  items.push({
-    x: 24 + Math.random() * (W - 48), y: -30,
-    vy: 160 + Math.random() * 90 + time * 4,
-    e: bomb ? BOMB : GIFTS[Math.floor(Math.random() * GIFTS.length)],
-    bomb, rot: Math.random() * 6
-  });
-}
-
-function finish() {
-  s.over = true; haptic('heavy');
-  let best = s.score;
-  try { best = Math.max(+localStorage.getItem('gift_best') || 0, s.score); localStorage.setItem('gift_best', best); } catch(e){}
-  document.getElementById('final').textContent = s.score;
-  document.getElementById('best').textContent = 'أفضل نتيجة: ' + best;
-  document.getElementById('end').classList.add('show');
-}
-
-let last = performance.now();
-function loop(now) {
-  const dt = Math.min((now - last) / 1000, 0.05); last = now;
-  ctx.clearRect(0, 0, W, H);
-
-  if (!s.over) {
-    time += dt; spawnT -= dt;
-    if (spawnT <= 0) { spawn(); spawnT = Math.max(0.35, 0.9 - time * 0.01); }
-  }
-
-  const by = H - 90;
-  for (let i = items.length - 1; i >= 0; i--) {
-    const it = items[i];
-    it.y += it.vy * dt;
-    const caught = it.y > by - 10 && it.y < by + basket.h && Math.abs(it.x - basket.x) < basket.w / 2 + 8;
-    if (caught && !s.over) {
-      if (it.bomb) { s.lives--; haptic('rigid'); if (s.lives <= 0) finish(); }
-      else { s.score++; haptic('light'); }
-      hud(); items.splice(i, 1); continue;
-    }
-    if (it.y > H + 30) { items.splice(i, 1); continue; }
-    ctx.font = '34px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(it.e, it.x, it.y);
-  }
-
-  // السلة
-  ctx.fillStyle = '#ff7ab8';
-  ctx.beginPath();
-  ctx.moveTo(basket.x - basket.w / 2, by);
-  ctx.lineTo(basket.x + basket.w / 2, by);
-  ctx.lineTo(basket.x + basket.w / 2 - 12, by + basket.h);
-  ctx.lineTo(basket.x - basket.w / 2 + 12, by + basket.h);
-  ctx.closePath(); ctx.fill();
-
-  requestAnimationFrame(loop);
-}
-
-document.getElementById('again').addEventListener('click', reset);
-reset();
-requestAnimationFrame(loop);
+addEventListener('keydown', e => {
+  const m = { '*':'×', '/':'÷', '-':'−', 'Enter':'=', 'Escape':'C', ',':'.' };
+  const k = m[e.key] || e.key;
+  if (/^[0-9.+=%]$/.test(k) || '×÷−C'.includes(k)) press(k);
+});
+show();
 </script>
 </body>
 </html>
