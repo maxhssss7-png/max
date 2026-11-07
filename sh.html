@@ -411,6 +411,9 @@ async function runSearch(q){
   try{
     const [a,b,o]=await Promise.all([getJSON(nomi,sig),getJSON(photon,sig),getJSON(over,sig)]);
     const list=[];
+    // أماكنك المضافة والمحفوظة أولاً
+    const ql=q.toLowerCase();
+    [...D.places,...D.favs].forEach(p=>{if(p.name.toLowerCase().includes(ql))list.push({name:p.name,sub:"من أماكنك ⭐",lat:p.lat,lon:p.lon})});
     (a||[]).forEach(x=>{const p=x.display_name.split(/[،,]\s*/);list.push({name:x.name||p[0],sub:p.slice(1,4).join("، "),lat:+x.lat,lon:+x.lon})});
     ((b&&b.features)||[]).forEach(f=>{const p=f.properties;if(p.countrycode&&p.countrycode!=="IQ")return;
       list.push({name:p.name||p.street||"",sub:[p.street,p.district,p.city,p.state].filter(Boolean).join("، "),lat:f.geometry.coordinates[1],lon:f.geometry.coordinates[0]})});
@@ -453,12 +456,19 @@ map.on("click",()=>{$("results").hidden=true;$("q").blur()});
 /* ---------- routing (OSRM) ---------- */
 // ضغطة مطولة على أي مكان: يجيب اسم الشارع ويوصلك له
 map.on("contextmenu",async e=>{
+  if(!$("adding").hidden)return;
   const ll=[e.latlng.lat,e.latlng.lng];
   setDest(ll,"جاري معرفة اسم المكان…");
-  const n=await nameOf(ll); if(dest&&dest[0]===ll[0])$("rDest").textContent=n;
+  const n=await nameOf(ll); if(dest&&dest[0]===ll[0]){$("rDest").textContent=n;addRecent(ll,n)}
 });
 
+function addRecent(ll,name){
+  if(!name||name.startsWith("جاري"))return;
+  D.recent=[{name,lat:ll[0],lon:ll[1]},...D.recent.filter(x=>x.name!==name)].slice(0,8);saveD();
+}
 function setDest(ll,name){
+  if(!$("adding").hidden)exitAdding();
+  addRecent(ll,name);
   dest=ll;
   if(destMarker)destMarker.remove();
   destMarker=L.marker(ll,{icon:L.divIcon({className:"",html:'<div class="dst"></div>',iconSize:[18,18],iconAnchor:[9,9]})}).addTo(map);
@@ -602,6 +612,7 @@ function stopRoute(){
   if(routeLine)routeLine.remove();if(destMarker)destMarker.remove();
   routeLine=destMarker=null;
   $("routing").hidden=true;$("idle").hidden=false;$("btnGo").textContent="انطلق";$("banner").hidden=true;
+  releaseWake();
   updateSheetH();
 }
 $("btnCancel").onclick=stopRoute;
@@ -612,12 +623,114 @@ $("btnGo").onclick=()=>{
     follow=true;$("btnFollow").classList.add("on");if(me)map.setView(me,17);
     const t=steps[1]?instr(steps[1]).t:"";
     say(`أهلاً بك في الشويلات. بدأ التوجيه إلى ${$("rDest").textContent}. ${t}`);
-    setBanner();
-  } else {$("banner").hidden=true;if(window.speechSynthesis)speechSynthesis.cancel()}
+    setBanner();keepAwake();
+  } else {$("banner").hidden=true;releaseWake();if(window.speechSynthesis)speechSynthesis.cancel()}
+};
+
+/* ---------- الشاشة تبقى شغالة أثناء التوجيه ---------- */
+let wake=null;
+async function keepAwake(){try{if("wakeLock" in navigator)wake=await navigator.wakeLock.request("screen")}catch(e){}}
+function releaseWake(){try{if(wake)wake.release()}catch(e){}wake=null}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&navigating)keepAwake()});
+
+/* ---------- البيت والعمل والمحفوظة ---------- */
+const curName=()=>$("rDest").textContent;
+function goSaved(p){if(p)setDest([p.lat,p.lon],p.name)}
+$("qHome").onclick=()=>D.home?goSaved(D.home):toast("ما حددت بيتك بعد. اختر المكان ثم اضغط 🏠 بيتي");
+$("qWork").onclick=()=>D.work?goSaved(D.work):toast("ما حددت عملك بعد. اختر المكان ثم اضغط 💼 عملي");
+$("mHome").onclick=()=>{if(!dest)return;D.home={name:"البيت",lat:dest[0],lon:dest[1]};saveD();drawPlaces();toast("تم حفظه كبيتك 🏠")};
+$("mWork").onclick=()=>{if(!dest)return;D.work={name:"العمل",lat:dest[0],lon:dest[1]};saveD();drawPlaces();toast("تم حفظه كمكان عملك 💼")};
+$("mSave").onclick=()=>{
+  if(!dest)return;const n=curName();
+  if(D.favs.some(f=>Math.abs(f.lat-dest[0])<1e-5&&Math.abs(f.lon-dest[1])<1e-5)){toast("محفوظ من قبل ⭐");return}
+  D.favs.unshift({name:n,lat:dest[0],lon:dest[1]});saveD();toast("تم الحفظ في المحفوظة ⭐");
+};
+$("mShare").onclick=async()=>{
+  if(!dest)return;const n=curName();
+  const url=`${location.origin}${location.pathname}?to=${dest[0].toFixed(5)},${dest[1].toFixed(5)}&n=${encodeURIComponent(n)}`;
+  const text=`${n} — افتحه في الشويلات`;
+  try{if(navigator.share){await navigator.share({title:"الشويلات",text,url});return}}catch(e){if(e.name==="AbortError")return}
+  try{await navigator.clipboard.writeText(`${text}\n${url}`);toast("تم نسخ الرابط، الصقه بالواتساب")}catch(e){toast(url)}
+};
+
+function savedList(){
+  const r=$("results");r.innerHTML="";r.hidden=false;
+  const sec=(title,items,delKey)=>{
+    if(!items.length)return;
+    r.insertAdjacentHTML("beforeend",`<div class="label">${title}</div>`);
+    items.forEach((p,i)=>{
+      const b=document.createElement("button");b.type="button";
+      b.innerHTML=`${delKey?'<span class="del" data-del="1">حذف</span>':""}${esc((p.icon?p.icon+" ":"")+p.name)}`;
+      b.onclick=e=>{
+        if(e.target.dataset.del){D[delKey].splice(i,1);saveD();drawPlaces();savedList();return}
+        r.hidden=true;goSaved(p);
+      };
+      r.appendChild(b);
+    });
+  };
+  sec("البيت والعمل",[D.home&&{...D.home,icon:"🏠"},D.work&&{...D.work,icon:"💼"}].filter(Boolean));
+  sec("المحفوظة ⭐",D.favs,"favs");
+  sec("أماكن أضفتها ➕",D.places.map(p=>({...p,icon:p.cat})),"places");
+  sec("آخر الأماكن",D.recent,"recent");
+  if(!r.children.length)r.innerHTML='<button disabled>ما عندك أماكن محفوظة بعد</button>';
+}
+$("qFav").onclick=savedList;
+
+/* ---------- أضف مكان ناقص ---------- */
+const placesLayer=L.layerGroup().addTo(map);
+function drawPlaces(){
+  placesLayer.clearLayers();
+  const mk=(p,cls,ic)=>L.marker([p.lat,p.lon],{icon:L.divIcon({className:"",html:`<div class="place ${cls}">${ic}</div>`,iconSize:[30,30],iconAnchor:[15,15]})})
+    .on("click",()=>goSaved(p)).addTo(placesLayer);
+  if(D.home)mk(D.home,"home","🏠");
+  if(D.work)mk(D.work,"work","💼");
+  D.places.forEach(p=>mk(p,"",p.cat));
+}
+function exitAdding(){$("adding").hidden=true;$("cross").hidden=true;$("idle").hidden=false;updateSheetH()}
+$("qAdd").onclick=()=>{
+  $("idle").hidden=true;$("adding").hidden=false;$("cross").hidden=false;$("apName").value="";
+  follow=false;$("btnFollow").classList.remove("on");if(me)map.setView(me,17);updateSheetH();
+};
+$("apCancel").onclick=exitAdding;
+$("apSave").onclick=()=>{
+  const n=$("apName").value.trim();if(!n){toast("اكتب اسم المكان");$("apName").focus();return}
+  const c=map.getCenter();
+  D.places.unshift({name:n,cat:$("apCat").value,lat:c.lat,lon:c.lng});saveD();drawPlaces();exitAdding();
+  toast(`تمت إضافة "${n}" ويظهر بالبحث`);
+};
+
+/* ---------- الإعدادات ---------- */
+function applyStyle(){
+  const h=new Date().getHours();
+  document.body.classList.toggle("night",D.mapStyle==="night"||(D.mapStyle==="auto"&&(h>=18||h<6)));
+}
+function seg(id,opts,key,after){
+  const el=$(id);el.innerHTML="";
+  opts.forEach(([v,l])=>{const b=document.createElement("button");b.type="button";b.textContent=l;if(D[key]===v)b.className="on";
+    b.onclick=()=>{D[key]=v;saveD();seg(id,opts,key,after);if(after)after()};el.appendChild(b)});
+}
+function renderSettings(){
+  seg("sStyle",[["auto","تلقائي"],["day","نهاري"],["night","ليلي"]],"mapStyle",applyStyle);
+  seg("sSound",[[true,"تشغيل"],[false,"إيقاف"]],"sound",syncSound);
+  seg("sSpeed",[[0,"بدون"],[80,"80"],[100,"100"],[120,"120"]],"speedLimit");
+  $("sClear").textContent="مسح كل البيانات";$("sClear").dataset.sure="";
+}
+$("qSet").onclick=()=>{renderSettings();$("settings").hidden=false};
+$("sClose").onclick=()=>$("settings").hidden=true;
+$("settings").onclick=e=>{if(e.target.id==="settings")$("settings").hidden=true};
+$("sClear").onclick=()=>{
+  if(!$("sClear").dataset.sure){$("sClear").dataset.sure="1";$("sClear").textContent="اضغط مرة ثانية للتأكيد";return}
+  try{localStorage.removeItem(SKEY);localStorage.removeItem(STORE)}catch(e){}
+  location.href=location.pathname;
 };
 
 function updateSheetH(){document.documentElement.style.setProperty("--sheet-h",$("sheet").offsetHeight+"px")}
 
+applyStyle();setInterval(applyStyle,600000);
+drawPlaces();
+// فتح رابط مشاركة: ?to=lat,lon&n=الاسم
+try{const sp=new URLSearchParams(location.search),to=sp.get("to");
+  if(to){const [a,b]=to.split(",").map(Number);if(IRAQ.contains([a,b]))setTimeout(()=>setDest([a,b],sp.get("n")||"مكان مُرسل لك"),1500)}}catch(e){}
 loadReports();drawReports();renderStats();updateSheetH();
 setInterval(()=>{const n=reports.length;loadReports();if(reports.length!==n){drawReports();renderStats()}},60000);
 window.addEventListener("resize",updateSheetH);
