@@ -28,20 +28,13 @@ window.APP_ICON="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAMAAABlA
              {src:big,sizes:"512x512",type:"image/png",purpose:"maskable"}]};
     try{document.getElementById("appManifest").href=URL.createObjectURL(new Blob([JSON.stringify(m)],{type:"application/manifest+json"}))}catch(e){}
   }
-  // إذا كان ملف manifest.json موجوداً بجانب الصفحة نستخدمه (تثبيت مباشر مضمون على أندرويد)، وإلا نستخدم المدمج
   function embedded(){
     var img=new Image();
   img.onload=function(){try{var c=document.createElement("canvas");c.width=c.height=512;var x=c.getContext("2d");x.imageSmoothingQuality="high";x.drawImage(img,0,0,512,512);make(c.toDataURL("image/png"))}catch(e){make(I)}};
   img.onerror=function(){make(I)};
     img.src=I;
   }
-  try{
-    fetch("manifest.json",{method:"HEAD",cache:"no-store"}).then(function(r){
-      if(r.ok){document.getElementById("appManifest").href="manifest.json";
-        if("serviceWorker" in navigator)fetch("sw.js",{method:"HEAD",cache:"no-store"}).then(function(s){if(s.ok)navigator.serviceWorker.register("sw.js").catch(function(){})}).catch(function(){});
-      } else embedded();
-    }).catch(embedded);
-  }catch(e){embedded()}
+  embedded();
 })();
 </script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
