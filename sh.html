@@ -66,9 +66,6 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .leaflet-control-attribution a{color:var(--faint)!important}
 .leaflet-tile-pane{transition:filter .35s ease}
 .raster-night .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.82) contrast(.92) saturate(.8)}
-body.focus-route .leaflet-tile-pane{filter:brightness(.6) saturate(.45)}
-body.day.focus-route .leaflet-tile-pane{filter:saturate(.3) brightness(1.03) contrast(.85)}
-body.raster-night.focus-route .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.52) contrast(.9) saturate(.4)}
 .dot,.pin{transition:opacity .3s}
 body.focus-route .dot,body.focus-route .pin:not(.onroute){opacity:0;pointer-events:none}
 .splash{position:fixed;inset:0;z-index:999;background:#0f1216;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;transition:opacity .45s ease}
@@ -129,6 +126,13 @@ width:60px;height:60px;border-radius:50%;border:0;background:var(--brand);color:
 .sheet{position:fixed;z-index:550;left:0;right:0;bottom:0;background:var(--panel);border-radius:24px 24px 0 0;box-shadow:0 -8px 28px rgba(0,0,0,.28);
 padding:8px max(16px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 14px) max(16px,env(safe-area-inset-left,0px))}
 .grab{width:38px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 12px}
+.sheet-grab{display:block;width:100%;height:26px;margin:-6px 0 4px;background:none;border:0;padding:0;position:relative;cursor:grab;touch-action:none}
+.sheet-grab::before{content:"";position:absolute;left:50%;top:9px;width:44px;height:5px;border-radius:3px;background:var(--line);transform:translateX(-50%);transition:background .2s}
+.sheet-grab:active::before{background:var(--muted)}
+.sheet{transition:transform .25s ease}
+.sheet.collapsed #idle > :not(h2),.sheet.collapsed #routing > :not(.route-head),.sheet.collapsed #adding > :not(h2){display:none}
+.sheet.collapsed h2{margin-bottom:2px}
+.sheet.collapsed .route-head{cursor:pointer}
 .sheet h2{margin:0 0 12px;font-size:19px;font-weight:700}
 .quick{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .qbtn{display:flex;flex-direction:column;align-items:center;gap:7px;background:none;border:0;padding:4px 0;font-size:12.5px;color:var(--fg)}
@@ -330,7 +334,7 @@ background:var(--fg);color:var(--bg);padding:11px 18px;border-radius:14px;font-w
 </div>
 <button class="report-fab" id="btnReport" type="button" aria-label="إضافة بلاغ"><svg class="ic"><use href="#i-alert"/></svg></button>
 <div class="sheet" id="sheet">
-<div class="grab"></div>
+<button class="grab sheet-grab" id="grab" type="button" aria-label="إخفاء أو إظهار التفاصيل"></button>
 <div id="idle">
 <div class="install-bar" id="installBar" hidden>
 <img class="appicon" alt="">
@@ -563,6 +567,37 @@ m.setLayoutProperty(l.id,"text-field",["coalesce",["get","name:ar"],["get","name
 });
 }catch(e){}
 }
+const WAZE={
+night:{bg:"#262a33",land:"#2a2f39",building:"#30353f",water:"#2c4466",park:"#2b4a35",road:"#4a5c78",major:"#5c7296",casing:"#262a33",rail:"#3b414c",boundary:"#4f5666",text:"#e9edf3",halo:"#1c2027",poi:"#aab4c3"},
+day:{bg:"#eef0f3",land:"#e8ebef",building:"#dde2e8",water:"#a7cdf2",park:"#cbe7c4",road:"#ffffff",major:"#ffe08a",casing:"#c3cad4",rail:"#c9cfd8",boundary:"#b9c0cb",text:"#28323e",halo:"#ffffff",poi:"#5b6878"}
+};
+function wazeStyle(m,night){
+const P=night?WAZE.night:WAZE.day;
+let layers=[];try{layers=m.getStyle().layers||[]}catch(e){return}
+layers.forEach(l=>{
+const id=l.id.toLowerCase(), t=l.type, set=(k,v)=>{try{m.setPaintProperty(l.id,k,v)}catch(e){}};
+if(t==="background")set("background-color",P.bg);
+else if(t==="fill"){
+try{m.setPaintProperty(l.id,"fill-pattern",undefined)}catch(e){}
+if(/water|ocean|lake|river|reservoir/.test(id))set("fill-color",P.water);
+else if(/park|wood|forest|grass|green|garden|landcover|meadow|farm|scrub|wetland|cemetery|pitch|golf/.test(id))set("fill-color",P.park);
+else if(/building/.test(id)){set("fill-color",P.building);set("fill-outline-color",P.building)}
+else set("fill-color",P.land);
+}
+else if(t==="fill-extrusion"){set("fill-extrusion-color",P.building);set("fill-extrusion-opacity",0.55)}
+else if(t==="line"){
+if(/water|river|stream|canal|drain|ditch/.test(id))set("line-color",P.water);
+else if(/casing|outline/.test(id))set("line-color",P.casing);
+else if(/rail|transit|subway/.test(id))set("line-color",P.rail);
+else if(/boundary|admin/.test(id))set("line-color",P.boundary);
+else if(/motorway|trunk|primary/.test(id))set("line-color",P.major);
+else if(/road|highway|street|secondary|tertiary|minor|service|track|path|bridge|tunnel|link|aeroway|pier/.test(id))set("line-color",P.road);
+}
+else if(t==="symbol"){
+set("text-color",/poi/.test(id)?P.poi:P.text);set("text-halo-color",P.halo);set("text-halo-width",1.4);
+}
+});
+}
 function addRaster(){
 if(raster)return;
 raster=L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,bounds:IRAQ.pad(0.03),attribution:"© OpenStreetMap"}).addTo(map);
@@ -580,7 +615,7 @@ gl=L.maplibreGL({style:STYLES[curStyle],attribution:"© OpenFreeMap © OpenStree
 glMap=gl.getMaplibreMap();
 let ok=false;
 glMap.on("load",()=>{ok=true});
-glMap.on("style.load",()=>arabize(glMap));
+glMap.on("style.load",()=>{arabize(glMap);wazeStyle(glMap,curStyle==="night")});
 setTimeout(()=>{if(!ok){try{map.removeLayer(gl)}catch(e){}gl=glMap=null;addRaster()}},12000);
 return;
 }catch(e){gl=glMap=null}
@@ -727,12 +762,23 @@ const stripAl=w=>w.length>4?w.replace(/^ال/,""):w;
 function arRegex(q){
 return norm(q).replace(/[.*+?^${}()|[\]\\"]/g,"").split(" ").filter(Boolean).map(w=>stripAl(w).split("").map(ch=>({"ا":"[اأإآٱ]","ه":"[هة]","ي":"[يىئ]","و":"[وؤ]"}[ch]||ch)).join("")).join(".*");
 }
-function score(name,q){const n=norm(name),k=norm(q);if(!k)return 3;if(n===k)return 0;if(n.startsWith(k)||n.startsWith("ال"+k))return 1;if(n.includes(k)||k.split(" ").every(w=>n.includes(stripAl(w))))return 2;return 3}
+const hasAr=t=>/[؀-ۿ]/.test(t||"");
+const arOnly=parts=>parts.filter(x=>x&&hasAr(x));
+function score(name,q){
+const n=norm(name),k=norm(q);if(!k)return 3;if(n===k)return 0;
+if(n.startsWith(k)||n.startsWith("ال"+k))return 1;
+const w=k.split(" ").map(stripAl).filter(Boolean),hit=w.filter(x=>n.includes(x)).length;
+if(n.includes(k)||hit===w.length)return 2;
+if(hit&&hit>=Math.ceil(w.length/2))return 2.5;
+return 3;
+}
 const PLACE_AR={city:"مدينة",town:"مدينة",village:"قرية",hamlet:"قرية",suburb:"حي",neighbourhood:"منطقة",quarter:"حي",locality:"منطقة",island:"جزيرة"};
 function showResults(list,c,icon,q,pending){
 const r=$("results");r.innerHTML="";r.hidden=false;
 const out=[];
-list.forEach(x=>{if(x.name&&!out.some(y=>norm(y.name)===norm(x.name)&&map.distance([y.lat,y.lon],[x.lat,x.lon])<300))out.push(x)});
+const sorted=list.filter(x=>x.name).sort((a,b)=>hasAr(b.name)-hasAr(a.name));
+sorted.forEach(x=>{if(!out.some(y=>(norm(y.name)===norm(x.name)&&map.distance([y.lat,y.lon],[x.lat,x.lon])<300)||(!hasAr(x.name)&&map.distance([y.lat,y.lon],[x.lat,x.lon])<150)))out.push(x)});
+if(q&&hasAr(q)&&out.some(x=>hasAr(x.name))){for(let i=out.length-1;i>=0;i--)if(!hasAr(out[i].name)&&!out[i].icon)out.splice(i,1)}
 out.forEach(x=>{x.d=map.distance(c,[x.lat,x.lon]);x.s=q?score(x.name,q):3});
 out.sort((a,b)=>a.s-b.s||a.d-b.d);
 if(q&&out.filter(x=>x.s<3).length>=3){for(let i=out.length-1;i>=0;i--)if(out[i].s===3)out.splice(i,1)}
@@ -751,16 +797,16 @@ if(searchCache.has(ck)){showResults(searchCache.get(ck),c,"pin",q,false);return}
 loading("جارٍ البحث…");
 const vb=`&viewbox=${c[1]-1},${c[0]+1},${c[1]+1},${c[0]-1}`;
 const re=arRegex(q), K='~"^(name|name:ar|name:en|alt_name|old_name|official_name|short_name)$"', BB="29.0,38.7,37.45,48.8";
-const tags=t=>[PLACE_AR[t.place],t["addr:street"],t["addr:city"]].filter(Boolean).join("، ");
+const tags=t=>arOnly([PLACE_AR[t.place],t["addr:street"],t["addr:city"]]).join("، ");
 const fromOverpass=(d,fallback)=>((d&&d.elements)||[]).forEach(e=>{const t=e.tags||{},la=e.lat||(e.center&&e.center.lat),lo=e.lon||(e.center&&e.center.lon);if(!la)return;
 all.push({name:t["name:ar"]||t.name||t["alt_name"],sub:tags(t)||fallback,lat:la,lon:lo})});
 const fromPhoton=b=>((b&&b.features)||[]).forEach(f=>{const p=f.properties;if(p.countrycode&&p.countrycode!=="IQ")return;
-all.push({name:p.name||p.street||"",sub:[PLACE_AR[p.osm_value],p.district,p.city,p.state].filter(Boolean).join("، "),lat:f.geometry.coordinates[1],lon:f.geometry.coordinates[0]})});
+all.push({name:p.name||p.street||"",sub:arOnly([PLACE_AR[p.osm_value],p.district,p.city,p.state]).join("، "),lat:f.geometry.coordinates[1],lon:f.geometry.coordinates[0]})});
 [...D.places,...D.favs].forEach(p=>{if(norm(p.name).includes(qn))all.push({name:p.name,sub:"من أماكنك",lat:p.lat,lon:p.lon,icon:"star"})});
 const jobs=[
 ()=>getJSON(`https://photon.komoot.io/api/?limit=25&q=${encodeURIComponent(q)}&lat=${c[0]}&lon=${c[1]}&bbox=${IQ_BBOX}`,sig,6000).then(fromPhoton),
 ()=>getJSON(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=20&countrycodes=iq&accept-language=ar&q=${encodeURIComponent(q)}${vb}`,sig,7000)
-.then(d=>{if(d)d.forEach(x=>{const p=x.display_name.split(/[،,]\s*/);all.push({name:x.name||p[0],sub:p.slice(1,4).join("، "),lat:+x.lat,lon:+x.lon})});return d}),
+.then(d=>{if(d)d.forEach(x=>{const p=x.display_name.split(/[،,]\s*/);all.push({name:x.name||p[0],sub:arOnly(p.slice(1,5)).slice(0,3).join("، "),lat:+x.lat,lon:+x.lon})});return d}),
 ()=>overpass(`[out:json][timeout:12];nwr[${K}~"${re}",i](around:30000,${c[0]},${c[1]});out center 80;`,sig,12000).then(d=>{fromOverpass(d,"بالقرب منك");return d}),
 ()=>overpass(`[out:json][timeout:15];(node["place"][${K}~"${re}",i](${BB});nwr["amenity"][${K}~"${re}",i](${BB});nwr["shop"][${K}~"${re}",i](${BB});`+
 `nwr["tourism"][${K}~"${re}",i](${BB});nwr["leisure"][${K}~"${re}",i](${BB});way["highway"][${K}~"${re}",i](${BB}););out center 80;`,sig,16000,true).then(d=>{fromOverpass(d,"العراق");return d})
@@ -811,7 +857,19 @@ function addRecent(ll,name){
 if(!name||name.startsWith("جارٍ"))return;
 D.recent=[{name,lat:ll[0],lon:ll[1]},...D.recent.filter(x=>x.name!==name)].slice(0,8);saveD();
 }
-function showPanel(id){["idle","routing","adding"].forEach(p=>$(p).hidden=p!==id);updateSheetH()}
+function showPanel(id){["idle","routing","adding"].forEach(p=>$(p).hidden=p!==id);setCollapsed(false)}
+function setCollapsed(v){$("sheet").classList.toggle("collapsed",v);updateSheetH()}
+$("grab").onclick=()=>setCollapsed(!$("sheet").classList.contains("collapsed"));
+document.querySelector("#routing .route-head").onclick=()=>{if($("sheet").classList.contains("collapsed"))setCollapsed(false)};
+(function(){
+let y0=null;
+const start=e=>{y0=(e.touches?e.touches[0]:e).clientY};
+const end=e=>{if(y0==null)return;const y=(e.changedTouches?e.changedTouches[0]:e).clientY,dy=y-y0;y0=null;
+if(dy>30)setCollapsed(true);else if(dy<-30)setCollapsed(false)};
+[$("grab"),document.querySelector("#routing .route-head"),document.querySelector("#idle h2")].forEach(el=>{
+el.addEventListener("touchstart",start,{passive:true});el.addEventListener("touchend",end);
+});
+})();
 function setDest(ll,name){
 if(!$("adding").hidden)exitAdding();
 addRecent(ll,name);
