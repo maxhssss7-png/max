@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0f1216" id="themeColor">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>الشويلات</title>
+<title>Rose</title>
 <link rel="icon" type="image/png" id="favIcon">
 <link rel="apple-touch-icon" id="touchIcon">
 <link rel="manifest" id="appManifest">
@@ -18,7 +18,7 @@ window.APP_ICON="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAMAAABlA
   document.getElementById("favIcon").href=I;document.getElementById("touchIcon").href=I;
   var base=location.href.split(/[?#]/)[0], dir=base.replace(/[^\/]*$/,"");
   function make(big){
-    var m={name:"الشويلات",short_name:"الشويلات",description:"خرائط وتوجيه في العراق",
+    var m={name:"Rose",short_name:"Rose",description:"خرائط وتوجيه في العراق",
       lang:"ar",dir:"rtl",id:base,start_url:base,scope:dir,display:"standalone",orientation:"portrait",
       background_color:"#0f1216",theme_color:"#0f1216",
       icons:[{src:I,sizes:"192x192",type:"image/png",purpose:"any"},
@@ -222,6 +222,24 @@ body.navigating .speed{top:calc(env(safe-area-inset-top,0px) + 118px)}
 .about small{color:var(--muted)}
 .about .dev{margin-top:8px;color:var(--fg);font-weight:600}
 
+/* صفحة الأذونات */
+.perm .body{display:flex;flex-direction:column;align-items:center;max-width:460px;margin:0 auto;width:100%}
+.perm .hero{text-align:center;padding:26px 8px 18px}
+.perm .hero img{width:76px;height:76px;border-radius:20px;box-shadow:var(--shadow)}
+.perm .hero h2{margin:14px 0 6px;font-size:22px}
+.perm .hero p{margin:0;color:var(--muted)}
+.pcard{display:flex;align-items:center;gap:14px;width:100%;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:10px}
+.pcard .iico{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;color:#fff;flex:none}
+.pcard .itxt{flex:1;min-width:0}
+.pcard .itxt b{display:block;font-size:15.5px}
+.pcard .itxt small{display:block;color:var(--muted);font-size:12.5px;line-height:1.5}
+.pbtn{height:38px;padding:0 16px;border-radius:12px;border:0;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:13.5px;white-space:nowrap}
+.pbtn.ok{background:rgba(53,201,138,.15);color:var(--ok)}
+.pbtn.no{background:rgba(255,90,78,.15);color:var(--danger)}
+.perm .foot{width:100%;margin-top:14px}
+.perm .note{color:var(--faint);font-size:12px;text-align:center;margin:12px 0 0}
+.more{grid-column:1/-1;color:var(--faint);font-size:12px;text-align:center;padding:8px}
+
 /* الإشعار */
 .toast{position:fixed;z-index:900;left:50%;transform:translateX(-50%);bottom:calc(var(--sheet-h,200px) + 86px);
   background:var(--fg);color:var(--bg);padding:11px 18px;border-radius:14px;font-weight:600;font-size:14px;max-width:calc(100vw - 32px);text-align:center;box-shadow:var(--shadow);animation:fade .2s ease}
@@ -297,7 +315,7 @@ body.navigating .speed{top:calc(env(safe-area-inset-top,0px) + 118px)}
 
 <div class="splash" id="splash">
   <img class="appicon" alt="">
-  <h1>الشويلات</h1>
+  <h1>Rose</h1>
   <p>خرائط وتوجيه في العراق</p>
   <div class="sig">المبرمج حسين محمد الشويلي</div>
 </div>
@@ -306,7 +324,7 @@ body.navigating .speed{top:calc(env(safe-area-inset-top,0px) + 118px)}
 
 <div class="top">
   <form class="searchbox" id="searchForm" autocomplete="off" role="search">
-    <svg class="ic"><use href="#i-search"/></svg>
+    <button type="submit" class="clearq" aria-label="بحث"><svg class="ic"><use href="#i-search"/></svg></button>
     <input id="q" type="search" placeholder="إلى أين تريد الذهاب؟" enterkeyhint="search" aria-label="بحث">
     <button type="button" class="clearq" id="clearQ" hidden aria-label="مسح"><svg class="ic sm"><use href="#i-x"/></svg></button>
   </form>
@@ -451,6 +469,15 @@ body.navigating .speed{top:calc(env(safe-area-inset-top,0px) + 118px)}
       </button>
     </div>
 
+    <div class="gtitle">الأذونات</div>
+    <div class="group">
+      <button class="item" id="sPerm" type="button">
+        <span class="iico" style="background:#1593d6"><svg class="ic sm"><use href="#i-locate"/></svg></span>
+        <div class="itxt"><b>أذونات التطبيق</b><small>الموقع والصوت والشاشة</small></div>
+        <svg class="ic sm" style="color:var(--faint)"><use href="#i-chev"/></svg>
+      </button>
+    </div>
+
     <div class="gtitle">البيانات</div>
     <div class="group">
       <button class="item" id="sClearReports" type="button">
@@ -467,11 +494,40 @@ body.navigating .speed{top:calc(env(safe-area-inset-top,0px) + 118px)}
     <div class="group">
       <div class="about">
         <img class="appicon" alt="">
-        <b>الشويلات</b>
+        <b>Rose</b>
         <small>الإصدار 2.0</small>
         <div class="dev">المبرمج حسين محمد الشويلي</div>
         <small>بيانات الخرائط © OpenStreetMap و OpenFreeMap</small>
       </div>
+    </div>
+  </div>
+</section>
+
+<section class="page perm" id="perm" hidden aria-label="الأذونات">
+  <div class="body">
+    <div class="hero">
+      <img class="appicon" alt="">
+      <h2>مرحباً بك في Rose</h2>
+      <p>يحتاج التطبيق إلى الأذونات التالية ليعمل بشكل كامل.</p>
+    </div>
+    <div class="pcard">
+      <span class="iico" style="background:#1593d6"><svg class="ic"><use href="#i-locate"/></svg></span>
+      <div class="itxt"><b>الموقع</b><small>لتحديد مكانك وحساب المسار والتوجيه أثناء القيادة</small></div>
+      <button class="pbtn" id="pLoc" type="button">السماح</button>
+    </div>
+    <div class="pcard">
+      <span class="iico" style="background:#7d5cff"><svg class="ic"><use href="#i-vol"/></svg></span>
+      <div class="itxt"><b>الصوت</b><small>للإرشادات الصوتية وتنبيهات البلاغات والسرعة</small></div>
+      <button class="pbtn" id="pSnd" type="button">تفعيل</button>
+    </div>
+    <div class="pcard">
+      <span class="iico" style="background:#35c98a"><svg class="ic"><use href="#i-screen"/></svg></span>
+      <div class="itxt"><b>إبقاء الشاشة مضاءة</b><small>حتى لا تنطفئ الشاشة أثناء التوجيه</small></div>
+      <button class="pbtn" id="pWake" type="button">تفعيل</button>
+    </div>
+    <div class="foot">
+      <button class="btn primary" id="pDone" type="button" style="width:100%">متابعة</button>
+      <p class="note">يمكنك مراجعة الأذونات لاحقاً من الإعدادات.</p>
     </div>
   </div>
 </section>
@@ -587,8 +643,14 @@ function onPos(p){
   checkNearbyReports();
 }
 function onErr(e){toast(e.code===1?"يُرجى السماح للتطبيق بالوصول إلى موقعك":"تعذّر تحديد الموقع، تأكد من تشغيل GPS")}
-if("geolocation" in navigator)navigator.geolocation.watchPosition(onPos,onErr,{enableHighAccuracy:true,maximumAge:2000,timeout:20000});
-else toast("المتصفح لا يدعم تحديد الموقع");
+let geoOn=false, locState="ask";
+function startGeo(){
+  if(geoOn)return;
+  if(!("geolocation" in navigator)){locState="no";paintPerm();toast("المتصفح لا يدعم تحديد الموقع");return}
+  geoOn=true;
+  navigator.geolocation.watchPosition(p=>{if(locState!=="ok"){locState="ok";paintPerm()}onPos(p)},
+    e=>{if(e.code===1){locState="no";geoOn=false;paintPerm()}onErr(e)},{enableHighAccuracy:true,maximumAge:2000,timeout:20000});
+}
 map.on("dragstart",()=>setFollow(false));
 $("btnFollow").onclick=()=>{setFollow(true);if(me)map.setView(me,Math.max(map.getZoom(),16));else toast("جارٍ تحديد موقعك…")};
 
@@ -673,37 +735,63 @@ function resultItem(x){
   b.onclick=()=>{$("results").hidden=true;$("q").blur();setDest([x.lat,x.lon],x.name)};
   return b;
 }
-function showResults(list,c,icon){
-  const r=$("results");r.innerHTML="";
+// توحيد الكتابة العربية: أ إ آ ← ا ، ة ← ه ، ى ← ي ، حذف التشكيل والتطويل
+function norm(s){return String(s||"").toLowerCase().replace(/[أإآٱ]/g,"ا").replace(/ة/g,"ه").replace(/ى/g,"ي").replace(/ؤ/g,"و").replace(/ئ/g,"ي").replace(/[ً-ْـ]/g,"").replace(/\s+/g," ").trim()}
+const stripAl=w=>w.length>4?w.replace(/^ال/,""):w;
+// تعبير بحث متسامح مع اختلاف الإملاء (يُستخدم في Overpass)
+function arRegex(q){
+  return norm(q).replace(/[.*+?^${}()|[\]\\"]/g,"").split(" ").filter(Boolean).map(w=>stripAl(w).split("").map(ch=>({"ا":"[اأإآٱ]","ه":"[هة]","ي":"[يىئ]","و":"[وؤ]"}[ch]||ch)).join("")).join(".*");
+}
+function score(name,q){const n=norm(name),k=norm(q);if(!k)return 3;if(n===k)return 0;if(n.startsWith(k)||n.startsWith("ال"+k))return 1;if(n.includes(k)||k.split(" ").every(w=>n.includes(stripAl(w))))return 2;return 3}
+const PLACE_AR={city:"مدينة",town:"مدينة",village:"قرية",hamlet:"قرية",suburb:"حي",neighbourhood:"منطقة",quarter:"حي",locality:"منطقة",island:"جزيرة"};
+
+function showResults(list,c,icon,q,pending){
+  const r=$("results");r.innerHTML="";r.hidden=false;
   const out=[];
-  list.forEach(x=>{if(x.name&&!out.some(y=>y.name===x.name&&map.distance([y.lat,y.lon],[x.lat,x.lon])<150))out.push(x)});
-  out.forEach(x=>x.d=map.distance(c,[x.lat,x.lon]));
-  out.sort((a,b)=>a.d-b.d);
-  if(!out.length){r.innerHTML='<div class="rempty">لا توجد نتائج. جرّب كلمة أخرى، أو اضغط مطولاً على المكان في الخريطة.</div>';return}
-  r.insertAdjacentHTML("beforeend",`<div class="rlabel">${out.length} نتيجة · الأقرب أولاً</div>`);
-  out.slice(0,25).forEach(x=>r.appendChild(resultItem({...x,icon:x.icon||icon})));
+  list.forEach(x=>{if(x.name&&!out.some(y=>norm(y.name)===norm(x.name)&&map.distance([y.lat,y.lon],[x.lat,x.lon])<300))out.push(x)});
+  out.forEach(x=>{x.d=map.distance(c,[x.lat,x.lon]);x.s=q?score(x.name,q):3});
+  out.sort((a,b)=>a.s-b.s||a.d-b.d);
+  if(!out.length){r.innerHTML=pending?'<div class="rempty">جارٍ البحث…</div>':'<div class="rempty">لا توجد نتائج. جرّب كتابة الاسم بطريقة أخرى، أو اضغط مطولاً على المكان في الخريطة.</div>';return}
+  r.insertAdjacentHTML("beforeend",`<div class="rlabel">${out.length} نتيجة${pending?" · جارٍ تحميل المزيد…":""}</div>`);
+  out.slice(0,40).forEach(x=>r.appendChild(resultItem({...x,icon:x.icon||icon})));
 }
 function loading(t){$("results").hidden=false;$("results").innerHTML=`<div class="rempty">${esc(t)}</div>`}
 
 async function runSearch(q){
   loading("جارٍ البحث…");
   if(searchCtl)searchCtl.abort();searchCtl=new AbortController();const sig=searchCtl.signal;
-  const c=center();
-  const nomi=`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=15&countrycodes=iq&accept-language=ar&q=${encodeURIComponent(q)}&viewbox=${c[1]-0.6},${c[0]+0.6},${c[1]+0.6},${c[0]-0.6}`;
-  const photon=`https://photon.komoot.io/api/?limit=15&q=${encodeURIComponent(q)}&lat=${c[0]}&lon=${c[1]}&bbox=${IQ_BBOX}`;
-  const nameRe=q.replace(/[.*+?^${}()|[\]\\"]/g,"").replace(/\s+/g,".*");
-  const over=`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(`[out:json][timeout:12];nwr["name"~"${nameRe}",i](around:15000,${c[0]},${c[1]});out center 40;`)}`;
-  try{
-    const [a,b,o]=await Promise.all([getJSON(nomi,sig),getJSON(photon,sig),getJSON(over,sig)]);
-    const list=[], ql=q.toLowerCase();
-    [...D.places,...D.favs].forEach(p=>{if(p.name.toLowerCase().includes(ql))list.push({name:p.name,sub:"من أماكنك",lat:p.lat,lon:p.lon,icon:"star"})});
-    (a||[]).forEach(x=>{const p=x.display_name.split(/[،,]\s*/);list.push({name:x.name||p[0],sub:p.slice(1,4).join("، "),lat:+x.lat,lon:+x.lon})});
-    ((b&&b.features)||[]).forEach(f=>{const p=f.properties;if(p.countrycode&&p.countrycode!=="IQ")return;
-      list.push({name:p.name||p.street||"",sub:[p.street,p.district,p.city,p.state].filter(Boolean).join("، "),lat:f.geometry.coordinates[1],lon:f.geometry.coordinates[0]})});
-    ((o&&o.elements)||[]).forEach(e=>{const t=e.tags||{},la=e.lat||(e.center&&e.center.lat),lo=e.lon||(e.center&&e.center.lon);if(!la)return;
-      list.push({name:t["name:ar"]||t.name,sub:[t["addr:street"],t["addr:city"]].filter(Boolean).join("، ")||"بالقرب منك",lat:la,lon:lo})});
-    showResults(list,c,"pin");
-  }catch(err){if(err.name!=="AbortError")loading("تعذّر البحث، تحقق من الاتصال بالإنترنت")}
+  const c=center(), qn=norm(q), all=[];
+  const vb=`&viewbox=${c[1]-1},${c[0]+1},${c[1]+1},${c[0]-1}`;
+  const re=arRegex(q), K='~"^(name|name:ar|name:en|alt_name|old_name|official_name|short_name)$"', BB="29.0,38.7,37.45,48.8";
+  const OV=x=>`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(x)}`;
+  const tags=t=>[PLACE_AR[t.place],t["addr:street"],t["addr:city"]].filter(Boolean).join("، ");
+  const fromOverpass=(d,fallback)=>((d&&d.elements)||[]).forEach(e=>{const t=e.tags||{},la=e.lat||(e.center&&e.center.lat),lo=e.lon||(e.center&&e.center.lon);if(!la)return;
+      all.push({name:t["name:ar"]||t.name||t["alt_name"],sub:tags(t)||fallback,lat:la,lon:lo})});
+  const fromPhoton=b=>((b&&b.features)||[]).forEach(f=>{const p=f.properties;if(p.countrycode&&p.countrycode!=="IQ")return;
+      all.push({name:p.name||p.street||"",sub:[PLACE_AR[p.osm_value],p.district,p.city,p.state].filter(Boolean).join("، "),lat:f.geometry.coordinates[1],lon:f.geometry.coordinates[0]})});
+  // أماكن المستخدم أولاً
+  [...D.places,...D.favs].forEach(p=>{if(norm(p.name).includes(qn))all.push({name:p.name,sub:"من أماكنك",lat:p.lat,lon:p.lon,icon:"star"})});
+  const jobs=[
+    [`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=20&countrycodes=iq&accept-language=ar&q=${encodeURIComponent(q)}${vb}`,
+      d=>(d||[]).forEach(x=>{const p=x.display_name.split(/[،,]\s*/);all.push({name:x.name||p[0],sub:p.slice(1,4).join("، "),lat:+x.lat,lon:+x.lon})})],
+    [`https://photon.komoot.io/api/?limit=25&q=${encodeURIComponent(q)}&lat=${c[0]}&lon=${c[1]}&bbox=${IQ_BBOX}`,fromPhoton],
+    // كل شيء باسمه قريب منك
+    [OV(`[out:json][timeout:20];nwr[${K}~"${re}",i](around:30000,${c[0]},${c[1]});out center 80;`),d=>fromOverpass(d,"بالقرب منك")],
+    // المدن والأحياء والقرى والشوارع والمحلات والمعالم في كل العراق
+    [OV(`[out:json][timeout:25];(node["place"][${K}~"${re}",i](${BB});nwr["amenity"][${K}~"${re}",i](${BB});nwr["shop"][${K}~"${re}",i](${BB});`+
+        `nwr["tourism"][${K}~"${re}",i](${BB});nwr["leisure"][${K}~"${re}",i](${BB});way["highway"][${K}~"${re}",i](${BB}););out center 80;`),d=>fromOverpass(d,"العراق")]
+  ];
+  if(qn!==q.trim().toLowerCase())jobs.push([`https://photon.komoot.io/api/?limit=25&q=${encodeURIComponent(qn)}&lat=${c[0]}&lon=${c[1]}&bbox=${IQ_BBOX}`,fromPhoton]);
+  let done=0, ok=0;
+  if(all.length)showResults(all,c,"pin",q,true);
+  await Promise.all(jobs.map(([url,parse])=>getJSON(url,sig).then(d=>{
+    if(sig.aborted)return;
+    if(d){ok++;try{parse(d)}catch(e){}}
+    done++;
+    if(done<jobs.length){if(all.length)showResults(all,c,"pin",q,true)}
+    else if(!ok&&!all.length)loading("تعذّر الاتصال بخدمة البحث، تحقق من الإنترنت ثم اضغط بحث مرة أخرى");
+    else showResults(all,c,"pin",q,false);
+  }).catch(()=>{})));
 }
 async function runCategory(filter,label,icon){
   loading(`جارٍ البحث عن ${label} بالقرب منك…`);
@@ -722,14 +810,9 @@ async function runCategory(filter,label,icon){
   }catch(err){if(err.name!=="AbortError")loading("تعذّر البحث، تحقق من الاتصال بالإنترنت")}
 }
 $("q").addEventListener("focus",()=>{if(!$("q").value.trim())showCats()});
-$("q").addEventListener("input",()=>{
-  clearTimeout(typeTimer);const q=$("q").value.trim();$("clearQ").hidden=!q;
-  if(!q){showCats();return}
-  if(q.length<2)return;
-  typeTimer=setTimeout(()=>runSearch(q),900);
-});
+$("q").addEventListener("input",()=>{const q=$("q").value.trim();$("clearQ").hidden=!q;if(!q)showCats()});
 $("clearQ").onclick=()=>{$("q").value="";$("clearQ").hidden=true;$("q").focus();showCats()};
-$("searchForm").onsubmit=e=>{e.preventDefault();clearTimeout(typeTimer);const q=$("q").value.trim();if(q)runSearch(q)};
+$("searchForm").onsubmit=e=>{e.preventDefault();const q=$("q").value.trim();if(!q){showCats();return}$("q").blur();runSearch(q)};
 map.on("click",()=>{$("results").hidden=true;$("q").blur()});
 
 /* ---------- الوجهة والمسار ---------- */
@@ -887,7 +970,7 @@ $("btnGo").onclick=()=>{
     if(!steps.length){toast("لم يُحسب المسار بعد");return}
     setNav(true);setFollow(true);if(me)map.setView(me,17);
     const t=steps[1]?instr(steps[1]).t:"";
-    say(`مرحباً بك في الشويلات. بدأ التوجيه إلى ${$("rDest").textContent}. ${t}`);
+    say(`مرحباً بك في روز. بدأ التوجيه إلى ${$("rDest").textContent}. ${t}`);
     setBanner();
   } else setNav(false);
 };
@@ -913,8 +996,8 @@ $("mSave").onclick=()=>{
 $("mShare").onclick=async()=>{
   if(!dest)return;const n=curName();
   const url=`${location.origin}${location.pathname}?to=${dest[0].toFixed(5)},${dest[1].toFixed(5)}&n=${encodeURIComponent(n)}`;
-  const text=`${n} — عرض الموقع في تطبيق الشويلات`;
-  try{if(navigator.share){await navigator.share({title:"الشويلات",text,url});return}}catch(e){if(e.name==="AbortError")return}
+  const text=`${n} — عرض الموقع في تطبيق Rose`;
+  try{if(navigator.share){await navigator.share({title:"Rose",text,url});return}}catch(e){if(e.name==="AbortError")return}
   try{await navigator.clipboard.writeText(`${text}\n${url}`);toast("تم نسخ الرابط")}catch(e){toast(url)}
 };
 function savedList(){
@@ -977,6 +1060,25 @@ function renderSettings(){
   $("sRepVal").textContent=reports.length?`${reports.length} بلاغ نشط`:"لا توجد بلاغات";
   $("sClearTxt").textContent="مسح جميع البيانات";delete $("sClear").dataset.sure;
 }
+/* ---------- الأذونات ---------- */
+let sndState="ask", wakeState=D.wake?"ok":"ask";
+function paintBtn(id,st,txt){const b=$(id);b.className="pbtn"+(st==="ok"?" ok":st==="no"?" no":"");b.textContent=st==="ok"?"مسموح ✓":st==="no"?"مرفوض":txt}
+function paintPerm(){
+  paintBtn("pLoc",locState,"السماح");
+  if(locState==="no")$("pLoc").title="فعّل إذن الموقع من إعدادات المتصفح";
+  paintBtn("pSnd",sndState,"تفعيل");paintBtn("pWake",wakeState,"تفعيل");
+}
+function showPerm(){$("settings").hidden=true;paintPerm();$("perm").hidden=false}
+$("pLoc").onclick=()=>{if(locState==="no"){toast("الإذن مرفوض. فعّل الموقع من إعدادات المتصفح، ثم أعد فتح التطبيق");return}startGeo();toast("اختر «السماح» في نافذة المتصفح")};
+$("pSnd").onclick=()=>{D.sound=true;saveD();syncSound();sndState="ok";paintPerm();say("تم تفعيل الصوت")};
+$("pWake").onclick=()=>{D.wake=true;saveD();wakeState="ok";paintPerm()};
+$("pDone").onclick=()=>{$("perm").hidden=true;D.onboarded=true;saveD();startGeo()};
+$("sPerm").onclick=showPerm;
+try{navigator.permissions.query({name:"geolocation"}).then(st=>{
+  const f=()=>{locState=st.state==="granted"?"ok":st.state==="denied"?"no":"ask";paintPerm();if(st.state==="granted")startGeo()};
+  f();st.onchange=f;
+}).catch(()=>{})}catch(e){}
+
 $("openSettings").onclick=()=>{$("results").hidden=true;renderSettings();$("settings").hidden=false};
 $("sBack").onclick=()=>$("settings").hidden=true;
 $("sSound").onchange=()=>{D.sound=$("sSound").checked;saveD();syncSound()};
@@ -995,7 +1097,7 @@ window.addEventListener("popstate",()=>{});
 /* ---------- البدء ---------- */
 initBase();applyTheme();syncSound();setInterval(applyTheme,600000);
 drawPlaces();loadReports();drawReports();renderStats();updateSheetH();
-setTimeout(()=>{$("splash").classList.add("out");setTimeout(()=>$("splash").remove(),500)},1300);
+setTimeout(()=>{$("splash").classList.add("out");setTimeout(()=>$("splash").remove(),500);if(D.onboarded)startGeo();else showPerm()},1300);
 setInterval(()=>{const n=reports.length;loadReports();if(reports.length!==n){drawReports();renderStats()}},60000);
 window.addEventListener("resize",updateSheetH);
 if(window.ResizeObserver)new ResizeObserver(updateSheetH).observe($("sheet"));
