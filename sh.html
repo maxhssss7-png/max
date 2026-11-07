@@ -524,6 +524,28 @@ function instr(st){
   }
 }
 
+// كلام الصوت باللهجة العراقية (عمارتلي) — اللوحة المكتوبة تبقى مثل ما هي
+const IQ={"right":"فوت يمينك","slight right":"ميّل شوية على يمينك","sharp right":"اكسرها يمين",
+  "left":"فوت يسارك","slight left":"ميّل شوية على يسارك","sharp left":"اكسرها يسار",
+  "straight":"خليك سيده","uturn":"ارجع لورا يابه"};
+function iraqi(st){
+  const m=st.maneuver, go=IQ[m.modifier]||"خليك سيده";
+  const road=st.name?` على ${st.name}`:"";
+  switch(m.type){
+    case "arrive": return "وصلنا عمي، الحمد لله على السلامة";
+    case "roundabout": case "rotary": case "roundabout turn":
+      return `بالفلكة اطلع من الطلعة ${["","الأولى","الثانية","الثالثة","الرابعة","الخامسة"][m.exit]||m.exit||""}${road}`;
+    case "exit roundabout": case "exit rotary": return `اطلع من الفلكة${road}`;
+    case "merge": return `دخّل ويا الطريق${road}`;
+    case "on ramp": return `فوت من الصعدة${road}`;
+    case "off ramp": return `اطلع من الطلعة${road}`;
+    case "fork": return `عند الفرع ${go}${road}`;
+    case "end of road": return `من يخلص الشارع ${go}${road}`;
+    case "new name": case "continue": return m.modifier==="straight"||!m.modifier?`خليك سيده${road}`:`${go}${road}`;
+    default: return `${go}${road}`;
+  }
+}
+
 let steps=[], stepIdx=1, spoken={}, routePts=[], lastOffCheck=0;
 function setBanner(){
   const b=$("banner");
