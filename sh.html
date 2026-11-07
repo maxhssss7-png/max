@@ -95,6 +95,16 @@ form.search button{background:transparent;border:0;color:var(--amber);font:inher
 .leaflet-control-attribution a{color:var(--muted)!important}
 .leaflet-control-zoom{display:none}
 
+/* لوحة التوجيه */
+.banner{position:fixed;z-index:520;left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));
+  top:calc(env(safe-area-inset-top,0px) + 62px);background:#0f5d2e;border-radius:16px;padding:12px;display:flex;gap:12px;align-items:center;box-shadow:0 6px 20px rgba(0,0,0,.4)}
+.b-arrow{font-size:44px;line-height:1;width:56px;text-align:center;color:#fff}
+.b-body{flex:1;min-width:0;color:#fff}
+.b-dist{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
+.b-text{font-size:17px;font-weight:600}
+.b-next{font-size:12px;opacity:.75;margin-top:2px}
+body:has(.banner:not([hidden])) .speed{top:calc(env(safe-area-inset-top,0px) + 170px)}
+
 /* splash + credit */
 .splash{position:fixed;inset:0;z-index:900;background:var(--asphalt);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;transition:opacity .5s}
 .splash .logo{background:var(--amber);color:var(--amber-ink);font-weight:700;font-size:38px;border-radius:20px;padding:10px 28px}
@@ -108,6 +118,27 @@ form.search button{background:transparent;border:0;color:var(--amber);font:inher
 .cats button{border:1px solid var(--line);background:var(--panel-2);color:var(--fg);font:inherit;border-radius:999px;padding:8px 12px}
 .results .label{padding:10px 12px 0;color:var(--muted);font-size:12px}
 .results .dist{float:left;color:var(--amber);font-size:12px;font-variant-numeric:tabular-nums}
+.results .del{float:left;color:var(--danger);font-size:12px;margin-right:10px;padding:0 4px}
+
+/* أزرار سريعة */
+.quick{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:10px}
+.quick button{border:1px solid var(--line);background:var(--panel-2);color:var(--fg);font:inherit;font-size:12px;border-radius:12px;padding:8px 2px;display:flex;flex-direction:column;align-items:center;gap:2px}
+.quick i{font-style:normal;font-size:20px}
+.mini{display:flex;gap:6px;margin-top:8px}
+.mini button{flex:1;min-width:0;border:1px solid var(--line);background:var(--panel-2);color:var(--fg);font:inherit;font-size:12px;border-radius:10px;padding:8px 2px;white-space:nowrap}
+
+/* نماذج وإعدادات */
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.field > label{color:var(--muted);font-size:13px}
+.field input,.field select{background:var(--panel-2);border:1px solid var(--line);color:var(--fg);font:inherit;border-radius:10px;padding:10px;width:100%}
+.seg{display:flex;gap:6px}
+.seg button{flex:1;border:1px solid var(--line);background:var(--panel-2);color:var(--fg);font:inherit;border-radius:10px;padding:9px 4px}
+.seg button.on{background:var(--amber);border-color:var(--amber);color:var(--amber-ink);font-weight:700}
+.crosshair{position:fixed;left:50%;top:50%;z-index:450;transform:translate(-50%,-100%);font-size:40px;pointer-events:none;filter:drop-shadow(0 3px 4px rgba(0,0,0,.5))}
+.speed.over{border-color:var(--danger);background:#5a1410}
+.night .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.85) contrast(.9)}
+.place{width:30px;height:30px;border-radius:50%;background:#7d5cff;border:2px solid #fff;display:grid;place-items:center;font-size:15px;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+.place.home{background:var(--ok)}.place.work{background:var(--route)}
 </style>
 </head>
 <body>
@@ -126,16 +157,33 @@ form.search button{background:transparent;border:0;color:var(--amber);font:inher
 </div>
 <div class="results" id="results" hidden></div>
 
+<div class="banner" id="banner" hidden>
+  <div class="b-arrow" id="bArrow">↑</div>
+  <div class="b-body">
+    <div class="b-dist" id="bDist"></div>
+    <div class="b-text" id="bText"></div>
+    <div class="b-next" id="bNext"></div>
+  </div>
+</div>
+
 <div class="speed"><div><b id="spd">0</b><span>كم/س</span></div></div>
 
 <div class="fabs">
   <button class="fab report" id="btnReport" aria-label="بلاغ">!</button>
+  <button class="fab on" id="btnSound" aria-label="الصوت">🔊</button>
   <button class="fab on" id="btnFollow" aria-label="تتبع موقعي">◎</button>
 </div>
 
 <div class="sheet" id="sheet">
   <div class="grab"></div>
   <div id="idle">
+    <div class="quick">
+      <button type="button" id="qHome"><i>🏠</i>البيت</button>
+      <button type="button" id="qWork"><i>💼</i>العمل</button>
+      <button type="button" id="qFav"><i>⭐</i>المحفوظة</button>
+      <button type="button" id="qAdd"><i>➕</i>أضف مكان</button>
+      <button type="button" id="qSet"><i>⚙️</i>الإعدادات</button>
+    </div>
     <p class="hint">ابحث عن مكان، أو اضغط مطولاً على الخريطة لتحديد الوجهة.</p>
     <div class="stats" id="stats"></div>
     <p class="credit"><b>الشويلات</b> · برمجة حسين</p>
@@ -146,11 +194,47 @@ form.search button{background:transparent;border:0;color:var(--amber);font:inher
       <div class="sub" id="rDist">–</div>
       <div class="dest" id="rDest"></div>
     </div>
+    <p class="hint" id="rFirst" style="margin:0 0 6px;color:var(--fg)"></p>
     <div class="stats" id="routeWarn"></div>
+    <div class="mini">
+      <button type="button" id="mSave">⭐ حفظ</button>
+      <button type="button" id="mHome">🏠 بيتي</button>
+      <button type="button" id="mWork">💼 عملي</button>
+      <button type="button" id="mShare">📤 مشاركة</button>
+    </div>
     <div class="row" style="margin-top:10px">
       <button class="btn primary" id="btnGo">انطلق</button>
       <button class="btn warn" id="btnCancel">إلغاء</button>
     </div>
+  </div>
+  <div id="adding" hidden>
+    <p class="hint">حرّك الخريطة حتى تصير العلامة 📍 فوق المكان بالضبط.</p>
+    <div class="field"><input id="apName" type="text" placeholder="اسم المكان، مثلاً: مطعم أبو علي" maxlength="60"></div>
+    <div class="field"><select id="apCat">
+      <option value="📍">📍 عام</option><option value="🍽️">🍽️ مطعم</option><option value="☕">☕ كافيه</option>
+      <option value="🛒">🛒 محل / سوق</option><option value="💊">💊 صيدلية</option><option value="🏥">🏥 عيادة</option>
+      <option value="⛽">⛽ وقود</option><option value="🔧">🔧 تصليح</option><option value="🕌">🕌 جامع</option><option value="🏠">🏠 بيت</option>
+    </select></div>
+    <div class="row">
+      <button class="btn primary" id="apSave" type="button">حفظ المكان</button>
+      <button class="btn warn" id="apCancel" type="button">إلغاء</button>
+    </div>
+  </div>
+</div>
+<div class="crosshair" id="cross" hidden>📍</div>
+
+<div class="picker-bg" id="settings" hidden>
+  <div class="picker">
+    <h2>إعدادات الشويلات</h2>
+    <p>تنحفظ على جهازك.</p>
+    <div class="field"><label>شكل الخريطة</label><div class="seg" id="sStyle"></div></div>
+    <div class="field"><label>التوجيه الصوتي</label><div class="seg" id="sSound"></div></div>
+    <div class="field"><label>تنبيه تجاوز السرعة</label><div class="seg" id="sSpeed"></div></div>
+    <div class="row">
+      <button class="btn warn" id="sClear" type="button">مسح كل البيانات</button>
+      <button class="btn" id="sClose" type="button">إغلاق</button>
+    </div>
+    <p class="credit"><b>الشويلات</b> · برمجة حسين</p>
   </div>
 </div>
 
@@ -176,6 +260,12 @@ const REPORT_TTL=2*60*60*1000;
 const STORE="shwaylat.reports.v1";
 const $=id=>document.getElementById(id);
 
+// بيانات المستخدم المحفوظة على الجهاز
+const SKEY="shwaylat.data.v1";
+let D={home:null,work:null,favs:[],recent:[],places:[],mapStyle:"auto",sound:true,speedLimit:0};
+try{Object.assign(D,JSON.parse(localStorage.getItem(SKEY)||"{}"))}catch(e){}
+function saveD(){try{localStorage.setItem(SKEY,JSON.stringify(D))}catch(e){}}
+
 // حدود العراق فقط
 const IRAQ=L.latLngBounds([29.0,38.7],[37.45,48.8]);
 const map=L.map("map",{zoomControl:false,attributionControl:true,maxBounds:IRAQ.pad(0.03),maxBoundsViscosity:1,minZoom:6}).setView([33.3152,44.3661],12);
@@ -195,9 +285,13 @@ function onPos(p){
   me=[p.coords.latitude,p.coords.longitude];
   const kmh=p.coords.speed!=null&&p.coords.speed>=0?Math.round(p.coords.speed*3.6):0;
   $("spd").textContent=kmh;
+  // تنبيه تجاوز السرعة
+  const over=D.speedLimit&&kmh>D.speedLimit;
+  document.querySelector(".speed").classList.toggle("over",!!over);
+  if(over&&Date.now()-(onPos.lastOver||0)>15000){onPos.lastOver=Date.now();beep();toast(`انتبه: سرعتك ${kmh} أكثر من ${D.speedLimit}`)}
   if(!meMarker){
     meMarker=L.marker(me,{icon:L.divIcon({className:"",html:'<div class="me"></div>',iconSize:[22,22],iconAnchor:[11,11]}),zIndexOffset:1000}).addTo(map);
-    map.setView(me,16);
+    if(dest)buildRoute(true); else map.setView(me,16);
   } else meMarker.setLatLng(me);
   if(follow) map.panTo(me,{animate:true});
   if(navigating && dest) navTick();
@@ -265,13 +359,17 @@ function checkNearbyReports(){
   });
 }
 
-/* ---------- search (Nominatim) ---------- */
-// بحث عام داخل العراق: يقترح نتائج أثناء الكتابة، مرتبة حسب الأقرب لك
+/* ---------- البحث المتعدد: 3 مصادر بنفس الوقت ---------- */
+// Nominatim + Photon للأسماء والشوارع، و Overpass لكل الأماكن القريبة حسب النوع
 const CATS=[
-  ["🍽️ مطعم","restaurant"],["☕ كافيه","cafe"],["⛽ محطة وقود","fuel"],
-  ["💊 صيدلية","pharmacy"],["🏥 مستشفى","hospital"],["🕌 جامع","mosque"],
-  ["🏧 صراف","atm"],["🛒 سوق","supermarket"]
+  ["🍽️ مطعم",'nwr["amenity"~"restaurant|fast_food"]'],["☕ كافيه",'nwr["amenity"="cafe"]'],
+  ["⛽ محطة وقود",'nwr["amenity"="fuel"]'],["💊 صيدلية",'nwr["amenity"="pharmacy"]'],
+  ["🏥 مستشفى",'nwr["amenity"~"hospital|clinic"]'],["🕌 جامع",'nwr["amenity"="place_of_worship"]["religion"="muslim"]'],
+  ["🏧 صراف",'nwr["amenity"~"atm|bank|bureau_de_change"]'],["🛒 سوق",'nwr["shop"~"supermarket|convenience|mall"]'],
+  ["🏨 فندق",'nwr["tourism"~"hotel|guest_house"]'],["🎓 مدرسة/جامعة",'nwr["amenity"~"school|university|college"]'],
+  ["🌳 حديقة",'nwr["leisure"="park"]'],["🔧 تصليح سيارات",'nwr["shop"~"car_repair|tyres|car_parts"]']
 ];
+const IQ_BBOX="38.7,29.0,48.8,37.45";
 const center=()=>me||[map.getCenter().lat,map.getCenter().lng];
 let searchCtl=null, typeTimer=null;
 
@@ -279,32 +377,63 @@ function showCats(){
   const r=$("results");r.innerHTML='<div class="label">بحث سريع قريب منك</div>';
   const box=document.createElement("div");box.className="cats";
   CATS.forEach(([n,k])=>{const b=document.createElement("button");b.type="button";b.textContent=n;
-    b.onclick=()=>{$("q").value=n.replace(/^\S+\s/,"");runSearch(k,true)};box.appendChild(b)});
+    b.onclick=()=>{$("q").value=n.replace(/^\S+\s/,"");runCategory(k,n.replace(/^\S+\s/,""))};box.appendChild(b)});
   r.appendChild(box);r.hidden=false;
 }
-async function runSearch(q,nearby){
-  const r=$("results");r.hidden=false;r.innerHTML='<button disabled>جارٍ البحث…</button>';
-  if(searchCtl)searchCtl.abort();searchCtl=new AbortController();
-  const c=center(), d=nearby?0.08:0.6;
-  let url=`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=10&countrycodes=iq&accept-language=ar&q=${encodeURIComponent(q)}`
-    +`&viewbox=${c[1]-d},${c[0]+d},${c[1]+d},${c[0]-d}`+(nearby?"&bounded=1":"");
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const getJSON=(u,sig)=>fetch(u,{signal:sig}).then(r=>r.ok?r.json():null).catch(e=>{if(e.name==="AbortError")throw e;return null});
+
+function showResults(list,c){
+  const r=$("results");r.innerHTML="";
+  // دمج النتائج وحذف المكرر (نفس الاسم وقريب من بعض)
+  const out=[];
+  list.forEach(x=>{if(!out.some(y=>y.name===x.name&&map.distance([y.lat,y.lon],[x.lat,x.lon])<150))out.push(x)});
+  out.forEach(x=>x.d=map.distance(c,[x.lat,x.lon]));
+  out.sort((a,b)=>a.d-b.d);
+  if(!out.length){r.innerHTML='<button disabled>ما لقينا نتيجة، جرّب كلمة ثانية أو اضغط مطولاً على المكان بالخريطة</button>';return}
+  r.insertAdjacentHTML("beforeend",`<div class="label">${out.length} نتيجة · الأقرب أولاً</div>`);
+  out.slice(0,25).forEach(x=>{
+    const b=document.createElement("button");b.type="button";
+    b.innerHTML=`<span class="dist">${fmtDist(x.d)}</span>${esc(x.name)}<small>${esc(x.sub||"")}</small>`;
+    b.onclick=()=>{r.hidden=true;$("q").blur();setDest([x.lat,x.lon],x.name)};
+    r.appendChild(b);
+  });
+}
+
+async function runSearch(q){
+  const r=$("results");r.hidden=false;r.innerHTML='<button disabled>جارٍ البحث في كل المصادر…</button>';
+  if(searchCtl)searchCtl.abort();searchCtl=new AbortController();const sig=searchCtl.signal;
+  const c=center();
+  const nomi=`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=15&countrycodes=iq&accept-language=ar&addressdetails=1&q=${encodeURIComponent(q)}&viewbox=${c[1]-0.6},${c[0]+0.6},${c[1]+0.6},${c[0]-0.6}`;
+  const photon=`https://photon.komoot.io/api/?limit=15&q=${encodeURIComponent(q)}&lat=${c[0]}&lon=${c[1]}&bbox=${IQ_BBOX}`;
+  const nameRe=q.replace(/[.*+?^${}()|[\]\\"]/g,"").replace(/\s+/g,".*");
+  const over=`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(`[out:json][timeout:12];nwr["name"~"${nameRe}",i](around:15000,${c[0]},${c[1]});out center 40;`)}`;
   try{
-    let data=await (await fetch(url,{signal:searchCtl.signal})).json();
-    if(!data.length&&nearby){ // ما وجد قريب؟ وسّع البحث لكل العراق
-      data=await (await fetch(url.replace("&bounded=1","").replace(/viewbox=[^&]+/,`viewbox=${c[1]-2},${c[0]+2},${c[1]+2},${c[0]-2}`),{signal:searchCtl.signal})).json();
+    const [a,b,o]=await Promise.all([getJSON(nomi,sig),getJSON(photon,sig),getJSON(over,sig)]);
+    const list=[];
+    (a||[]).forEach(x=>{const p=x.display_name.split(/[،,]\s*/);list.push({name:x.name||p[0],sub:p.slice(1,4).join("، "),lat:+x.lat,lon:+x.lon})});
+    ((b&&b.features)||[]).forEach(f=>{const p=f.properties;if(p.countrycode&&p.countrycode!=="IQ")return;
+      list.push({name:p.name||p.street||"",sub:[p.street,p.district,p.city,p.state].filter(Boolean).join("، "),lat:f.geometry.coordinates[1],lon:f.geometry.coordinates[0]})});
+    ((o&&o.elements)||[]).forEach(e=>{const t=e.tags||{},la=e.lat||(e.center&&e.center.lat),lo=e.lon||(e.center&&e.center.lon);if(!la)return;
+      list.push({name:t["name:ar"]||t.name,sub:[t["addr:street"],t["addr:city"]].filter(Boolean).join("، ")||"قريب منك",lat:la,lon:lo})});
+    showResults(list.filter(x=>x.name),c);
+  }catch(err){if(err.name!=="AbortError")r.innerHTML='<button disabled>تعذر البحث، تحقق من الإنترنت</button>'}
+}
+
+async function runCategory(filter,label){
+  const r=$("results");r.hidden=false;r.innerHTML=`<button disabled>نجيب كل ${esc(label)} القريبة منك…</button>`;
+  if(searchCtl)searchCtl.abort();searchCtl=new AbortController();const sig=searchCtl.signal;
+  const c=center();
+  try{
+    let res=null;
+    for(const rad of [3000,10000,30000]){ // يبدأ قريب ويوسّع إذا ما لقى
+      res=await getJSON(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(`[out:json][timeout:15];${filter}(around:${rad},${c[0]},${c[1]});out center 60;`)}`,sig);
+      if(res&&res.elements&&res.elements.length>=3)break;
     }
-    r.innerHTML="";
-    if(!data.length){r.innerHTML='<button disabled>ما لقينا نتيجة، جرّب كلمة ثانية</button>';return}
-    data.forEach(x=>x._d=map.distance(c,[+x.lat,+x.lon]));
-    data.sort((a,b)=>a._d-b._d);
-    data.forEach(x=>{
-      const b=document.createElement("button");b.type="button";
-      const parts=x.display_name.split(/[،,]\s*/);
-      const name=x.name||parts[0];
-      b.innerHTML=`<span class="dist">${fmtDist(x._d)}</span>${name}<small>${parts.slice(1,4).join("، ")}</small>`;
-      b.onclick=()=>{r.hidden=true;$("q").blur();setDest([+x.lat,+x.lon],name)};
-      r.appendChild(b);
-    });
+    const list=((res&&res.elements)||[]).map(e=>{const t=e.tags||{};return{
+      name:t["name:ar"]||t.name||`${label} بدون اسم`,sub:[t["addr:street"],t["addr:city"],t.opening_hours?"🕒 "+t.opening_hours:""].filter(Boolean).join("، "),
+      lat:e.lat||(e.center&&e.center.lat),lon:e.lon||(e.center&&e.center.lon)}}).filter(x=>x.lat);
+    showResults(list,c);
   }catch(err){if(err.name!=="AbortError")r.innerHTML='<button disabled>تعذر البحث، تحقق من الإنترنت</button>'}
 }
 $("q").addEventListener("focus",()=>{if(!$("q").value.trim())showCats()});
@@ -313,7 +442,7 @@ $("q").addEventListener("input",()=>{
   const q=$("q").value.trim();
   if(!q){showCats();return}
   if(q.length<2)return;
-  typeTimer=setTimeout(()=>runSearch(q,false),700);
+  typeTimer=setTimeout(()=>runSearch(q),900);
 });
 $("searchForm").onsubmit=e=>{
   e.preventDefault();clearTimeout(typeTimer);
@@ -322,7 +451,12 @@ $("searchForm").onsubmit=e=>{
 map.on("click",()=>{$("results").hidden=true;$("q").blur()});
 
 /* ---------- routing (OSRM) ---------- */
-map.on("contextmenu",e=>setDest([e.latlng.lat,e.latlng.lng],"نقطة على الخريطة"));
+// ضغطة مطولة على أي مكان: يجيب اسم الشارع ويوصلك له
+map.on("contextmenu",async e=>{
+  const ll=[e.latlng.lat,e.latlng.lng];
+  setDest(ll,"جاري معرفة اسم المكان…");
+  const n=await nameOf(ll); if(dest&&dest[0]===ll[0])$("rDest").textContent=n;
+});
 
 function setDest(ll,name){
   dest=ll;
@@ -337,23 +471,124 @@ function setDest(ll,name){
 function fmtTime(s){const m=Math.round(s/60);return m<60?`${m} د`:`${Math.floor(m/60)} س ${m%60} د`}
 function fmtDist(m){return m<1000?`${Math.round(m)} م`:`${(m/1000).toFixed(1)} كم`}
 
+/* ---------- الصوت ---------- */
+let soundOn=D.sound, arVoice=null;
+function pickVoice(){const v=speechSynthesis.getVoices();arVoice=v.find(x=>/^ar/i.test(x.lang))||null}
+if("speechSynthesis" in window){pickVoice();speechSynthesis.onvoiceschanged=pickVoice}
+let actx=null;
+function beep(){
+  try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+    [0,0.22].forEach(t=>{const o=actx.createOscillator(),g=actx.createGain();o.frequency.value=880;o.connect(g);g.connect(actx.destination);
+      g.gain.setValueAtTime(.25,actx.currentTime+t);g.gain.exponentialRampToValueAtTime(.001,actx.currentTime+t+.18);o.start(actx.currentTime+t);o.stop(actx.currentTime+t+.2)});
+  }catch(e){}
+}
+function say(text){
+  if(!soundOn)return;
+  beep();
+  if(!("speechSynthesis" in window))return;
+  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang="ar-SA";if(arVoice)u.voice=arVoice;u.rate=1;setTimeout(()=>speechSynthesis.speak(u),450)}catch(e){}
+}
+function syncSound(){soundOn=D.sound;$("btnSound").textContent=soundOn?"🔊":"🔇";$("btnSound").classList.toggle("on",soundOn)}
+$("btnSound").onclick=()=>{D.sound=!D.sound;saveD();syncSound();if(soundOn)say("الصوت شغّال");else if(window.speechSynthesis)speechSynthesis.cancel()};
+syncSound();
+
+/* ---------- تعليمات الطريق بالعربي ---------- */
+const MOD={"right":["انعطف يميناً","↱"],"slight right":["انحرف قليلاً لليمين","↗"],"sharp right":["انعطف بحدة لليمين","↘"],
+  "left":["انعطف يساراً","↰"],"slight left":["انحرف قليلاً لليسار","↖"],"sharp left":["انعطف بحدة لليسار","↙"],
+  "straight":["استمر مباشرة","↑"],"uturn":["استدر للخلف","↶"]};
+function instr(st){
+  const m=st.maneuver, mod=MOD[m.modifier]||["استمر","↑"];
+  const road=st.name?` إلى ${st.name}`:"";
+  switch(m.type){
+    case "arrive": return {t:"وصلت إلى وجهتك",a:"🏁"};
+    case "roundabout": case "rotary": case "roundabout turn":
+      return {t:`في الدوّار خذ المخرج ${["","الأول","الثاني","الثالث","الرابع","الخامس"][m.exit]||m.exit||""}${road}`,a:"↻"};
+    case "exit roundabout": case "exit rotary": return {t:`اخرج من الدوّار${road}`,a:mod[1]};
+    case "merge": return {t:`اندمج${road}`,a:mod[1]};
+    case "on ramp": return {t:`خذ المدخل${road}`,a:mod[1]};
+    case "off ramp": return {t:`خذ المخرج${road}`,a:mod[1]};
+    case "fork": return {t:`عند التفرع ${mod[0].replace("انعطف ","اتجه ")}${road}`,a:mod[1]};
+    case "end of road": return {t:`في نهاية الطريق ${mod[0]}${road}`,a:mod[1]};
+    case "new name": case "continue": return {t:m.modifier==="straight"||!m.modifier?`استمر${road||" مباشرة"}`:`${mod[0]}${road}`,a:mod[1]};
+    default: return {t:`${mod[0]}${road}`,a:mod[1]};
+  }
+}
+
+let steps=[], stepIdx=1, spoken={}, routePts=[], lastOffCheck=0;
+function setBanner(){
+  const b=$("banner");
+  if(!navigating||!steps[stepIdx]){b.hidden=true;return}
+  const st=steps[stepIdx], i=instr(st), d=me?map.distance(me,[st.maneuver.location[1],st.maneuver.location[0]]):0;
+  b.hidden=false;$("bArrow").textContent=i.a;$("bDist").textContent=fmtDist(d);$("bText").textContent=i.t;
+  const nx=steps[stepIdx+1];$("bNext").textContent=nx?`بعدها: ${instr(nx).t}`:"";
+}
+function navTick(){
+  if(map.distance(me,dest)<35){say("وصلت إلى وجهتك");toast("وصلت إلى وجهتك");stopRoute();return}
+  // خرجت عن الطريق؟ نعيد الحساب
+  if(Date.now()-lastOffCheck>8000&&routePts.length){
+    lastOffCheck=Date.now();
+    let min=1e9;for(let i=0;i<routePts.length;i+=2){const dd=map.distance(me,routePts[i]);if(dd<min)min=dd}
+    if(min>60){say("جاري إعادة حساب الطريق");buildRoute(false);return}
+  }
+  const st=steps[stepIdx];if(!st){setBanner();return}
+  const d=map.distance(me,[st.maneuver.location[1],st.maneuver.location[0]]);
+  const key=stepIdx, t=instr(st).t;
+  updateEta();
+  if(d<25){ stepIdx++; setBanner(); return; }
+  if(d<60&&!spoken[key+"n"]){spoken[key+"n"]=1;say(`الآن ${t}`)}
+  else if(d<200&&d>=60&&!spoken[key+"m"]){spoken[key+"m"]=1;say(`بعد ${Math.round(d/10)*10} متر ${t}`)}
+  else if(d<600&&d>=300&&!spoken[key+"f"]){spoken[key+"f"]=1;say(`بعد ${fmtDist(Math.round(d/50)*50).replace("م","متر").replace("كم","كيلومتر")} ${t}`)}
+  setBanner();
+}
+
+// الوقت والمسافة المتبقية ووقت الوصول
+function showEta(dist,dur){
+  const arr=new Date(Date.now()+dur*1000).toLocaleTimeString("ar-IQ",{hour:"numeric",minute:"2-digit"});
+  $("rTime").textContent=fmtTime(dur);
+  $("rDist").textContent=`${fmtDist(dist)} · الوصول ${arr}`;
+}
+function updateEta(){
+  if(!steps.length||!me)return;
+  let dist=0,dur=0;
+  for(let i=stepIdx;i<steps.length;i++){dist+=steps[i].distance;dur+=steps[i].duration}
+  const st=steps[stepIdx],prev=steps[stepIdx-1];
+  if(st&&prev&&prev.distance>0){
+    const f=Math.min(1,map.distance(me,[st.maneuver.location[1],st.maneuver.location[0]])/prev.distance);
+    dist+=prev.distance*f;dur+=prev.duration*f;
+  }
+  showEta(dist,dur);
+}
+
+async function nameOf(ll){
+  try{const r=await (await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=17&accept-language=ar&lat=${ll[0]}&lon=${ll[1]}`)).json();
+    const a=r.address||{};return r.name||a.road||a.neighbourhood||a.suburb||(r.display_name||"").split(/[،,]/)[0]||"نقطة على الخريطة";
+  }catch(e){return "نقطة على الخريطة"}
+}
+
 async function buildRoute(fit){
   if(!dest)return;
   if(!me){$("rTime").textContent="–";toast("بانتظار تحديد موقعك…");return}
   lastRouteAt=Date.now();
   try{
-    const url=`https://router.project-osrm.org/route/v1/driving/${me[1]},${me[0]};${dest[1]},${dest[0]}?overview=full&geometries=geojson`;
+    const url=`https://router.project-osrm.org/route/v1/driving/${me[1]},${me[0]};${dest[1]},${dest[0]}?overview=full&geometries=geojson&steps=true`;
     const res=await fetch(url);const data=await res.json();
     if(!data.routes||!data.routes.length)throw 0;
     const rt=data.routes[0];
     const pts=rt.geometry.coordinates.map(c=>[c[1],c[0]]);
+    routePts=pts;steps=rt.legs[0].steps;stepIdx=1;spoken={};
     if(routeLine)routeLine.remove();
+    // الخط الأزرق + خط متقطع (كيبل) يوصلك من مكانك للشارع ومن الشارع للوجهة
     routeLine=L.layerGroup([
+      L.polyline([me,pts[0]],{color:"#3fa9ff",weight:4,dashArray:"6 8"}),
+      L.polyline([pts[pts.length-1],dest],{color:"#ff5a4e",weight:4,dashArray:"6 8"}),
       L.polyline(pts,{color:"#0b4f86",weight:10,opacity:.9}),
       L.polyline(pts,{color:"#3fa9ff",weight:6})
     ]).addTo(map);
-    $("rTime").textContent=fmtTime(rt.duration);
-    $("rDist").textContent=fmtDist(rt.distance);
+    // أول تعليمة بالعربي في اللوحة السفلية
+    const first=steps[1]?instr(steps[1]).t:"";
+    $("rFirst").textContent=steps[0]&&steps[0].name?`انطلق من ${steps[0].name}${first?" ثم "+first:""}`:first;
+    if(navigating)setBanner();
+    showEta(rt.distance,rt.duration);
     // reports on the route
     const w=$("routeWarn");w.innerHTML="";
     const near=reports.filter(r=>pts.some((p,i)=>i%5===0&&map.distance(p,[r.lat,r.lng])<80));
@@ -363,17 +598,22 @@ async function buildRoute(fit){
   }catch(e){$("rTime").textContent="–";toast("تعذر حساب المسار")}
 }
 function stopRoute(){
-  navigating=false;dest=null;
+  navigating=false;dest=null;steps=[];routePts=[];
   if(routeLine)routeLine.remove();if(destMarker)destMarker.remove();
   routeLine=destMarker=null;
-  $("routing").hidden=true;$("idle").hidden=false;$("btnGo").textContent="انطلق";
+  $("routing").hidden=true;$("idle").hidden=false;$("btnGo").textContent="انطلق";$("banner").hidden=true;
   updateSheetH();
 }
 $("btnCancel").onclick=stopRoute;
 $("btnGo").onclick=()=>{
   navigating=!navigating;
   $("btnGo").textContent=navigating?"إيقاف التوجيه":"انطلق";
-  if(navigating){follow=true;$("btnFollow").classList.add("on");if(me)map.setView(me,17);toast("بدأ التوجيه")}
+  if(navigating){
+    follow=true;$("btnFollow").classList.add("on");if(me)map.setView(me,17);
+    const t=steps[1]?instr(steps[1]).t:"";
+    say(`أهلاً بك في الشويلات. بدأ التوجيه إلى ${$("rDest").textContent}. ${t}`);
+    setBanner();
+  } else {$("banner").hidden=true;if(window.speechSynthesis)speechSynthesis.cancel()}
 };
 
 function updateSheetH(){document.documentElement.style.setProperty("--sheet-h",$("sheet").offsetHeight+"px")}
