@@ -94,15 +94,33 @@ form.search button{background:transparent;border:0;color:var(--amber);font:inher
 .leaflet-control-attribution{font-size:9px;background:rgba(20,23,28,.7)!important;color:var(--muted)!important}
 .leaflet-control-attribution a{color:var(--muted)!important}
 .leaflet-control-zoom{display:none}
+
+/* splash + credit */
+.splash{position:fixed;inset:0;z-index:900;background:var(--asphalt);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;transition:opacity .5s}
+.splash .logo{background:var(--amber);color:var(--amber-ink);font-weight:700;font-size:38px;border-radius:20px;padding:10px 28px}
+.splash .by{color:var(--muted);font-size:14px}
+.splash.out{opacity:0;pointer-events:none}
+.credit{margin:12px 0 0;text-align:center;color:var(--muted);font-size:12px}
+.credit b{color:var(--amber)}
+
+/* quick categories */
+.cats{display:flex;flex-wrap:wrap;gap:8px;padding:12px}
+.cats button{border:1px solid var(--line);background:var(--panel-2);color:var(--fg);font:inherit;border-radius:999px;padding:8px 12px}
+.results .label{padding:10px 12px 0;color:var(--muted);font-size:12px}
+.results .dist{float:left;color:var(--amber);font-size:12px;font-variant-numeric:tabular-nums}
 </style>
 </head>
 <body>
+<div class="splash" id="splash">
+  <div class="logo">الشويلات</div>
+  <div class="by">برمجة حسين</div>
+</div>
 <div id="map"></div>
 
 <div class="top">
   <div class="brand">الشويلات</div>
   <form class="search" id="searchForm" autocomplete="off">
-    <input id="q" type="search" placeholder="إلى أين؟" enterkeyhint="search">
+    <input id="q" type="search" placeholder="ابحث في الشويلات: مكان، شارع، مطعم…" enterkeyhint="search">
     <button type="submit">بحث</button>
   </form>
 </div>
@@ -120,6 +138,7 @@ form.search button{background:transparent;border:0;color:var(--amber);font:inher
   <div id="idle">
     <p class="hint">ابحث عن مكان، أو اضغط مطولاً على الخريطة لتحديد الوجهة.</p>
     <div class="stats" id="stats"></div>
+    <p class="credit"><b>الشويلات</b> · برمجة حسين</p>
   </div>
   <div id="routing" hidden>
     <div class="route-info">
@@ -137,7 +156,7 @@ form.search button{background:transparent;border:0;color:var(--amber);font:inher
 
 <div class="picker-bg" id="picker" hidden>
   <div class="picker">
-    <h2>بلاغ في موقعك</h2>
+    <h2>بلاغ جديد في الشويلات</h2>
     <p>يظهر على الخريطة لمدة ساعتين.</p>
     <div class="grid" id="types"></div>
     <div class="row" style="margin-top:12px"><button class="btn" id="btnClosePicker">إغلاق</button></div>
@@ -157,11 +176,15 @@ const REPORT_TTL=2*60*60*1000;
 const STORE="shwaylat.reports.v1";
 const $=id=>document.getElementById(id);
 
-const map=L.map("map",{zoomControl:false,attributionControl:true}).setView([33.3152,44.3661],12);
-L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{
-  maxZoom:19,subdomains:"abcd",
-  attribution:'&copy; OpenStreetMap &copy; CARTO'
+// حدود العراق فقط
+const IRAQ=L.latLngBounds([29.0,38.7],[37.45,48.8]);
+const map=L.map("map",{zoomControl:false,attributionControl:true,maxBounds:IRAQ.pad(0.03),maxBoundsViscosity:1,minZoom:6}).setView([33.3152,44.3661],12);
+L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{
+  maxZoom:19,bounds:IRAQ.pad(0.03),
+  attribution:'&copy; OpenStreetMap'
 }).addTo(map);
+map.attributionControl.setPrefix("الشويلات");
+setTimeout(()=>{$("splash").classList.add("out");setTimeout(()=>$("splash").remove(),600)},1400);
 
 let me=null, meMarker=null, follow=true, dest=null, destMarker=null, routeLine=null, navigating=false, lastRouteAt=0;
 
@@ -246,27 +269,60 @@ function checkNearbyReports(){
 }
 
 /* ---------- search (Nominatim) ---------- */
-$("searchForm").onsubmit=async e=>{
-  e.preventDefault();
-  const q=$("q").value.trim();if(!q)return;
-  $("q").blur();
+// بحث عام داخل العراق: يقترح نتائج أثناء الكتابة، مرتبة حسب الأقرب لك
+const CATS=[
+  ["🍽️ مطعم","restaurant"],["☕ كافيه","cafe"],["⛽ محطة وقود","fuel"],
+  ["💊 صيدلية","pharmacy"],["🏥 مستشفى","hospital"],["🕌 جامع","mosque"],
+  ["🏧 صراف","atm"],["🛒 سوق","supermarket"]
+];
+const center=()=>me||[map.getCenter().lat,map.getCenter().lng];
+let searchCtl=null, typeTimer=null;
+
+function showCats(){
+  const r=$("results");r.innerHTML='<div class="label">بحث سريع قريب منك</div>';
+  const box=document.createElement("div");box.className="cats";
+  CATS.forEach(([n,k])=>{const b=document.createElement("button");b.type="button";b.textContent=n;
+    b.onclick=()=>{$("q").value=n.replace(/^\S+\s/,"");runSearch(k,true)};box.appendChild(b)});
+  r.appendChild(box);r.hidden=false;
+}
+async function runSearch(q,nearby){
   const r=$("results");r.hidden=false;r.innerHTML='<button disabled>جارٍ البحث…</button>';
+  if(searchCtl)searchCtl.abort();searchCtl=new AbortController();
+  const c=center(), d=nearby?0.08:0.6;
+  let url=`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=10&countrycodes=iq&accept-language=ar&q=${encodeURIComponent(q)}`
+    +`&viewbox=${c[1]-d},${c[0]+d},${c[1]+d},${c[0]-d}`+(nearby?"&bounded=1":"");
   try{
-    let url=`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&accept-language=ar&q=${encodeURIComponent(q)}`;
-    if(me)url+=`&viewbox=${me[1]-1},${me[0]+1},${me[1]+1},${me[0]-1}`;
-    const res=await fetch(url);const data=await res.json();
+    let data=await (await fetch(url,{signal:searchCtl.signal})).json();
+    if(!data.length&&nearby){ // ما وجد قريب؟ وسّع البحث لكل العراق
+      data=await (await fetch(url.replace("&bounded=1","").replace(/viewbox=[^&]+/,`viewbox=${c[1]-2},${c[0]+2},${c[1]+2},${c[0]-2}`),{signal:searchCtl.signal})).json();
+    }
     r.innerHTML="";
-    if(!data.length){r.innerHTML='<button disabled>لا توجد نتائج، جرّب اسماً آخر</button>';return}
-    data.forEach(d=>{
-      const b=document.createElement("button");
-      const parts=d.display_name.split("،").length>1?d.display_name.split("،"):d.display_name.split(",");
-      b.innerHTML=`${parts[0]}<small>${parts.slice(1,4).join("،")}</small>`;
-      b.onclick=()=>{r.hidden=true;setDest([+d.lat,+d.lon],parts[0])};
+    if(!data.length){r.innerHTML='<button disabled>ما لقينا نتيجة، جرّب كلمة ثانية</button>';return}
+    data.forEach(x=>x._d=map.distance(c,[+x.lat,+x.lon]));
+    data.sort((a,b)=>a._d-b._d);
+    data.forEach(x=>{
+      const b=document.createElement("button");b.type="button";
+      const parts=x.display_name.split(/[،,]\s*/);
+      const name=x.name||parts[0];
+      b.innerHTML=`<span class="dist">${fmtDist(x._d)}</span>${name}<small>${parts.slice(1,4).join("، ")}</small>`;
+      b.onclick=()=>{r.hidden=true;$("q").blur();setDest([+x.lat,+x.lon],name)};
       r.appendChild(b);
     });
-  }catch(err){r.innerHTML='<button disabled>تعذر البحث، تحقق من الإنترنت</button>'}
+  }catch(err){if(err.name!=="AbortError")r.innerHTML='<button disabled>تعذر البحث، تحقق من الإنترنت</button>'}
+}
+$("q").addEventListener("focus",()=>{if(!$("q").value.trim())showCats()});
+$("q").addEventListener("input",()=>{
+  clearTimeout(typeTimer);
+  const q=$("q").value.trim();
+  if(!q){showCats();return}
+  if(q.length<2)return;
+  typeTimer=setTimeout(()=>runSearch(q,false),700);
+});
+$("searchForm").onsubmit=e=>{
+  e.preventDefault();clearTimeout(typeTimer);
+  const q=$("q").value.trim();if(q)runSearch(q,false);
 };
-map.on("click",()=>{$("results").hidden=true});
+map.on("click",()=>{$("results").hidden=true;$("q").blur()});
 
 /* ---------- routing (OSRM) ---------- */
 map.on("contextmenu",e=>setDest([e.latlng.lat,e.latlng.lng],"نقطة على الخريطة"));
