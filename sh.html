@@ -200,10 +200,7 @@ function onPos(p){
     map.setView(me,16);
   } else meMarker.setLatLng(me);
   if(follow) map.panTo(me,{animate:true});
-  if(navigating && dest){
-    if(map.distance(me,dest)<40){toast("وصلت إلى وجهتك");stopRoute();return}
-    if(Date.now()-lastRouteAt>30000) buildRoute(false);
-  }
+  if(navigating && dest) navTick();
   checkNearbyReports();
 }
 function onErr(e){
