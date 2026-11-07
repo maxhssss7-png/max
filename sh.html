@@ -6,6 +6,8 @@
 <meta name="theme-color" content="#0f1216" id="themeColor">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Rose">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Rose</title>
 <link rel="icon" type="image/png" id="favIcon">
 <link rel="apple-touch-icon" id="touchIcon">
@@ -26,10 +28,20 @@ window.APP_ICON="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAMAAABlA
              {src:big,sizes:"512x512",type:"image/png",purpose:"maskable"}]};
     try{document.getElementById("appManifest").href=URL.createObjectURL(new Blob([JSON.stringify(m)],{type:"application/manifest+json"}))}catch(e){}
   }
-  var img=new Image();
+  // إذا كان ملف manifest.json موجوداً بجانب الصفحة نستخدمه (تثبيت مباشر مضمون على أندرويد)، وإلا نستخدم المدمج
+  function embedded(){
+    var img=new Image();
   img.onload=function(){try{var c=document.createElement("canvas");c.width=c.height=512;var x=c.getContext("2d");x.imageSmoothingQuality="high";x.drawImage(img,0,0,512,512);make(c.toDataURL("image/png"))}catch(e){make(I)}};
   img.onerror=function(){make(I)};
-  img.src=I;
+    img.src=I;
+  }
+  try{
+    fetch("manifest.json",{method:"HEAD",cache:"no-store"}).then(function(r){
+      if(r.ok){document.getElementById("appManifest").href="manifest.json";
+        if("serviceWorker" in navigator)fetch("sw.js",{method:"HEAD",cache:"no-store"}).then(function(s){if(s.ok)navigator.serviceWorker.register("sw.js").catch(function(){})}).catch(function(){});
+      } else embedded();
+    }).catch(embedded);
+  }catch(e){embedded()}
 })();
 </script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
@@ -40,7 +52,7 @@ window.APP_ICON="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAMAAABlA
 /* التخطيط: خريطة بملء الشاشة، شريط بحث علوي، أزرار عائمة، لوحة سفلية، وصفحة إعدادات مستقلة */
 :root{
   --bg:#0f1216; --panel:#1a1e25; --panel-2:#232831; --panel-3:#2c323d; --line:#2f3641;
-  --fg:#eef1f5; --muted:#97a1ae; --faint:#6b7684;
+  --fg:#f3f5f8; --muted:#a9b2be; --faint:#7f8a97;
   --accent:#33c3ff; --accent-strong:#1593d6; --accent-ink:#03202e;
   --brand:#ffb627; --brand-ink:#1d1400;
   --danger:#ff5a4e; --ok:#35c98a; --warn:#ff9f3d;
@@ -52,7 +64,7 @@ window.APP_ICON="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAMAAABlA
 }
 body.day{
   --bg:#eef2f6; --panel:#ffffff; --panel-2:#f2f5f9; --panel-3:#e6ebf1; --line:#e1e6ec;
-  --fg:#15202b; --muted:#5b6876; --faint:#8b97a5;
+  --fg:#0f1923; --muted:#4b5866; --faint:#748190;
   --accent:#0aa5e8; --accent-strong:#0786c0; --accent-ink:#ffffff;
   --shadow:0 8px 22px rgba(21,32,43,.16);
   color-scheme:light;
@@ -71,7 +83,14 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .leaflet-control-zoom{display:none}
 .leaflet-control-attribution{font-size:9px;background:transparent!important;color:var(--faint)!important}
 .leaflet-control-attribution a{color:var(--faint)!important}
+.leaflet-tile-pane{transition:filter .35s ease}
 .raster-night .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.82) contrast(.92) saturate(.8)}
+/* عند اختيار وجهة: الخريطة تخفت والمسار يبرز */
+body.focus-route .leaflet-tile-pane{filter:brightness(.6) saturate(.45)}
+body.day.focus-route .leaflet-tile-pane{filter:saturate(.3) brightness(1.03) contrast(.85)}
+body.raster-night.focus-route .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.52) contrast(.9) saturate(.4)}
+.dot,.pin{transition:opacity .3s}
+body.focus-route .dot,body.focus-route .pin:not(.onroute){opacity:0;pointer-events:none}
 
 /* شاشة البداية */
 .splash{position:fixed;inset:0;z-index:999;background:#0f1216;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;transition:opacity .45s ease}
@@ -240,6 +259,19 @@ body.navigating .speed{top:calc(env(safe-area-inset-top,0px) + 118px)}
 .perm .note{color:var(--faint);font-size:12px;text-align:center;margin:12px 0 0}
 .more{grid-column:1/-1;color:var(--faint);font-size:12px;text-align:center;padding:8px}
 
+/* التثبيت */
+.install-bar{display:flex;align-items:center;gap:12px;background:var(--panel-2);border-radius:16px;padding:10px 12px;margin-bottom:14px}
+.install-bar img{width:40px;height:40px;border-radius:11px;flex:none}
+.install-bar .itxt{flex:1;min-width:0}
+.install-bar .itxt b{display:block;font-size:14px}
+.install-bar .itxt small{display:block;color:var(--muted);font-size:12px}
+.install-bar .x{border:0;background:none;color:var(--faint);padding:6px;display:grid;place-items:center}
+.steps{display:flex;flex-direction:column;gap:10px;margin:4px 0 16px}
+.step{display:flex;align-items:center;gap:12px;background:var(--panel-2);border-radius:14px;padding:12px}
+.step .n{width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:700;font-size:13px;flex:none}
+.step .t{flex:1;font-size:14px}
+.step .k{width:36px;height:36px;border-radius:10px;background:var(--panel);display:grid;place-items:center;color:var(--accent);flex:none}
+
 /* الإشعار */
 .toast{position:fixed;z-index:900;left:50%;transform:translateX(-50%);bottom:calc(var(--sheet-h,200px) + 86px);
   background:var(--fg);color:var(--bg);padding:11px 18px;border-radius:14px;font-weight:600;font-size:14px;max-width:calc(100vw - 32px);text-align:center;box-shadow:var(--shadow);animation:fade .2s ease}
@@ -250,7 +282,7 @@ body.navigating .speed{top:calc(env(safe-area-inset-top,0px) + 118px)}
 .pin .ic{transform:rotate(45deg);color:#fff;width:19px;height:19px;stroke-width:2.2}
 .dot{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;border:2.5px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.35);color:#fff}
 .dot .ic{width:16px;height:16px;stroke-width:2.3}
-.dst{width:20px;height:20px;border-radius:50%;background:var(--danger);border:4px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+.dst{width:24px;height:24px;border-radius:50%;background:var(--danger);border:4px solid #fff;box-shadow:0 0 0 8px rgba(255,90,78,.25),0 2px 8px rgba(0,0,0,.5)}
 .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--panel);color:var(--fg);box-shadow:var(--shadow)}
 .leaflet-popup-content{font-family:var(--font);text-align:right;margin:12px 14px;min-width:150px}
 .leaflet-popup-content b{font-size:15px}
@@ -286,6 +318,10 @@ body.navigating .speed{top:calc(env(safe-area-inset-top,0px) + 118px)}
   <symbol id="i-gauge" viewBox="0 0 24 24"><path d="M4.5 17a8.5 8.5 0 1 1 15 0"/><path d="M12 13l4-4"/></symbol>
   <symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.3 0 1.8-.9 1.5-1.9-.4-1.2.3-2.3 1.6-2.3h1.9a3.5 3.5 0 0 0 3.5-3.5c0-5.2-3.8-9.3-8.5-9.3z"/><circle cx="8" cy="11" r="1.1"/><circle cx="11" cy="7.5" r="1.1"/><circle cx="15.5" cy="8.5" r="1.1"/></symbol>
   <symbol id="i-screen" viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M11 18.5h2"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3.5v11M7.5 10l4.5 4.5 4.5-4.5M4.5 17v2.5h15V17"/></symbol>
+  <symbol id="i-iosshare" viewBox="0 0 24 24"><path d="M12 14.5V3M8 7l4-4 4 4"/><path d="M8.5 10.5H6v10h12v-10h-2.5"/></symbol>
+  <symbol id="i-plussq" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8.5v7M8.5 12h7"/></symbol>
+  <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="12" cy="5.5" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="12" cy="18.5" r="1.3"/></symbol>
   <symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7.5" ry="3"/><path d="M4.5 6v12c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3V6M4.5 12c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3"/></symbol>
   <!-- اتجاهات -->
   <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 20V5M6 11l6-6 6 6"/></symbol>
@@ -353,6 +389,12 @@ body.navigating .speed{top:calc(env(safe-area-inset-top,0px) + 118px)}
 <div class="sheet" id="sheet">
   <div class="grab"></div>
   <div id="idle">
+    <div class="install-bar" id="installBar" hidden>
+      <img class="appicon" alt="">
+      <div class="itxt"><b>ثبّت Rose على هاتفك</b><small>افتحه من الشاشة الرئيسية مثل أي تطبيق</small></div>
+      <button class="pbtn" id="installBtn" type="button">تثبيت</button>
+      <button class="x" id="installX" type="button" aria-label="إخفاء"><svg class="ic sm"><use href="#i-x"/></svg></button>
+    </div>
     <h2>إلى أين اليوم؟</h2>
     <div class="quick">
       <button class="qbtn" id="qHome" type="button"><span><svg class="ic"><use href="#i-home"/></svg></span>المنزل</button>
@@ -404,6 +446,16 @@ body.navigating .speed{top:calc(env(safe-area-inset-top,0px) + 118px)}
     <p>يُسجَّل البلاغ في موقعك الحالي ويظهر على الخريطة لمدة ساعتين.</p>
     <div class="rgrid" id="types"></div>
     <button class="btn" id="btnClosePicker" type="button" style="width:100%">إغلاق</button>
+  </div>
+</div>
+
+<div class="modal" id="installSheet" hidden>
+  <div class="card">
+    <div class="grab"></div>
+    <h3>تثبيت Rose</h3>
+    <p id="instHint"></p>
+    <div class="steps" id="instSteps"></div>
+    <button class="btn primary" id="instClose" type="button" style="width:100%">تم</button>
   </div>
 </div>
 
@@ -474,6 +526,14 @@ body.navigating .speed{top:calc(env(safe-area-inset-top,0px) + 118px)}
       <button class="item" id="sPerm" type="button">
         <span class="iico" style="background:#1593d6"><svg class="ic sm"><use href="#i-locate"/></svg></span>
         <div class="itxt"><b>أذونات التطبيق</b><small>الموقع والصوت والشاشة</small></div>
+        <svg class="ic sm" style="color:var(--faint)"><use href="#i-chev"/></svg>
+      </button>
+    </div>
+
+    <div class="group" id="sInstallGroup" style="margin-top:10px">
+      <button class="item" id="sInstall" type="button">
+        <span class="iico" style="background:#ffb627"><svg class="ic sm"><use href="#i-download"/></svg></span>
+        <div class="itxt"><b>تثبيت التطبيق</b><small>إضافة Rose إلى الشاشة الرئيسية</small></div>
         <svg class="ic sm" style="color:var(--faint)"><use href="#i-chev"/></svg>
       </button>
     </div>
@@ -661,11 +721,13 @@ function loadReports(){try{reports=JSON.parse(localStorage.getItem(RKEY)||"[]")}
 function saveReports(){try{localStorage.setItem(RKEY,JSON.stringify(reports))}catch(e){}}
 const repLayer=L.layerGroup().addTo(map);
 function ago(t){const m=Math.round((Date.now()-t)/60000);return m<1?"الآن":m<60?`منذ ${m} دقيقة`:`منذ ${Math.round(m/60)} ساعة`}
-function drawReports(){
+let routeNear=null;
+function drawReports(on){
+  if(on===undefined)on=routeNear;
   repLayer.clearLayers();
   reports.forEach(r=>{
     const ty=TYPES[r.k];
-    const m=L.marker([r.lat,r.lng],{icon:L.divIcon({className:"",html:`<div class="pin" style="background:${ty.c}">${ic(ty.ic)}</div>`,iconSize:[38,38],iconAnchor:[19,40],popupAnchor:[0,-36]})});
+    const m=L.marker([r.lat,r.lng],{icon:L.divIcon({className:"",html:`<div class="pin${on&&on.has(r.id)?" onroute":""}" style="background:${ty.c}">${ic(ty.ic)}</div>`,iconSize:[38,38],iconAnchor:[19,40],popupAnchor:[0,-36]})});
     const box=document.createElement("div");
     box.innerHTML=`<b>${ty.n}</b><small>${ago(r.t)}</small>`;
     const del=document.createElement("button");del.type="button";del.textContent="لم يعد موجوداً";
@@ -713,7 +775,23 @@ const CATS=[
 const IQ_BBOX="38.7,29.0,48.8,37.45";
 const center=()=>me||[map.getCenter().lat,map.getCenter().lng];
 let searchCtl=null, typeTimer=null;
-const getJSON=(u,sig)=>fetch(u,{signal:sig}).then(r=>r.ok?r.json():null).catch(e=>{if(e.name==="AbortError")throw e;return null});
+// طلب مع مهلة زمنية: إذا تأخر المصدر نتجاوزه ولا نعلّق البحث
+function getJSON(u,sig,ms){
+  const ctl=new AbortController(), stop=()=>ctl.abort();
+  if(sig){if(sig.aborted)stop();else sig.addEventListener("abort",stop,{once:true})}
+  const tm=setTimeout(stop,ms||9000);
+  return fetch(u,{signal:ctl.signal}).then(r=>r.ok?r.json():null).catch(()=>null)
+    .finally(()=>{clearTimeout(tm);if(sig)sig.removeEventListener("abort",stop)})
+    .then(d=>{if(sig&&sig.aborted){const e=new Error("aborted");e.name="AbortError";throw e}return d});
+}
+// خوادم Overpass: إذا فشل الأول نجرب الثاني
+const OVERPASS=["https://overpass-api.de/api/interpreter","https://overpass.kumi.systems/api/interpreter"];
+async function overpass(q,sig,ms,first){
+  const order=first?[OVERPASS[1],OVERPASS[0]]:OVERPASS;
+  for(const base of order){const d=await getJSON(`${base}?data=${encodeURIComponent(q)}`,sig,ms);if(d&&d.elements)return d}
+  return null;
+}
+const searchCache=new Map();
 
 function showCats(){
   const r=$("results");
@@ -751,6 +829,7 @@ function showResults(list,c,icon,q,pending){
   list.forEach(x=>{if(x.name&&!out.some(y=>norm(y.name)===norm(x.name)&&map.distance([y.lat,y.lon],[x.lat,x.lon])<300))out.push(x)});
   out.forEach(x=>{x.d=map.distance(c,[x.lat,x.lon]);x.s=q?score(x.name,q):3});
   out.sort((a,b)=>a.s-b.s||a.d-b.d);
+  if(q&&out.filter(x=>x.s<3).length>=3){for(let i=out.length-1;i>=0;i--)if(out[i].s===3)out.splice(i,1)}
   if(!out.length){r.innerHTML=pending?'<div class="rempty">جارٍ البحث…</div>':'<div class="rempty">لا توجد نتائج. جرّب كتابة الاسم بطريقة أخرى، أو اضغط مطولاً على المكان في الخريطة.</div>';return}
   r.insertAdjacentHTML("beforeend",`<div class="rlabel">${out.length} نتيجة${pending?" · جارٍ تحميل المزيد…":""}</div>`);
   out.slice(0,40).forEach(x=>r.appendChild(resultItem({...x,icon:x.icon||icon})));
@@ -758,40 +837,46 @@ function showResults(list,c,icon,q,pending){
 function loading(t){$("results").hidden=false;$("results").innerHTML=`<div class="rempty">${esc(t)}</div>`}
 
 async function runSearch(q){
-  loading("جارٍ البحث…");
   if(searchCtl)searchCtl.abort();searchCtl=new AbortController();const sig=searchCtl.signal;
+  // إحداثيات مباشرة مثل: 33.31, 44.36
+  const co=q.replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d)).match(/^\s*(-?\d{1,2}(?:\.\d+)?)\s*[,،\s]\s*(-?\d{1,3}(?:\.\d+)?)\s*$/);
+  if(co){const a=+co[1],b=+co[2];if(IRAQ.contains([a,b])){$("results").hidden=true;setDest([a,b],`${a.toFixed(5)}، ${b.toFixed(5)}`);return}}
   const c=center(), qn=norm(q), all=[];
+  const ck=qn+"|"+c[0].toFixed(2)+","+c[1].toFixed(2);
+  if(searchCache.has(ck)){showResults(searchCache.get(ck),c,"pin",q,false);return}
+  loading("جارٍ البحث…");
   const vb=`&viewbox=${c[1]-1},${c[0]+1},${c[1]+1},${c[0]-1}`;
   const re=arRegex(q), K='~"^(name|name:ar|name:en|alt_name|old_name|official_name|short_name)$"', BB="29.0,38.7,37.45,48.8";
-  const OV=x=>`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(x)}`;
   const tags=t=>[PLACE_AR[t.place],t["addr:street"],t["addr:city"]].filter(Boolean).join("، ");
   const fromOverpass=(d,fallback)=>((d&&d.elements)||[]).forEach(e=>{const t=e.tags||{},la=e.lat||(e.center&&e.center.lat),lo=e.lon||(e.center&&e.center.lon);if(!la)return;
       all.push({name:t["name:ar"]||t.name||t["alt_name"],sub:tags(t)||fallback,lat:la,lon:lo})});
   const fromPhoton=b=>((b&&b.features)||[]).forEach(f=>{const p=f.properties;if(p.countrycode&&p.countrycode!=="IQ")return;
       all.push({name:p.name||p.street||"",sub:[PLACE_AR[p.osm_value],p.district,p.city,p.state].filter(Boolean).join("، "),lat:f.geometry.coordinates[1],lon:f.geometry.coordinates[0]})});
-  // أماكن المستخدم أولاً
   [...D.places,...D.favs].forEach(p=>{if(norm(p.name).includes(qn))all.push({name:p.name,sub:"من أماكنك",lat:p.lat,lon:p.lon,icon:"star"})});
   const jobs=[
-    [`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=20&countrycodes=iq&accept-language=ar&q=${encodeURIComponent(q)}${vb}`,
-      d=>(d||[]).forEach(x=>{const p=x.display_name.split(/[،,]\s*/);all.push({name:x.name||p[0],sub:p.slice(1,4).join("، "),lat:+x.lat,lon:+x.lon})})],
-    [`https://photon.komoot.io/api/?limit=25&q=${encodeURIComponent(q)}&lat=${c[0]}&lon=${c[1]}&bbox=${IQ_BBOX}`,fromPhoton],
+    // سريعة: تظهر نتائجها خلال ثانية تقريباً
+    ()=>getJSON(`https://photon.komoot.io/api/?limit=25&q=${encodeURIComponent(q)}&lat=${c[0]}&lon=${c[1]}&bbox=${IQ_BBOX}`,sig,6000).then(fromPhoton),
+    ()=>getJSON(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=20&countrycodes=iq&accept-language=ar&q=${encodeURIComponent(q)}${vb}`,sig,7000)
+      .then(d=>{if(d)d.forEach(x=>{const p=x.display_name.split(/[،,]\s*/);all.push({name:x.name||p[0],sub:p.slice(1,4).join("، "),lat:+x.lat,lon:+x.lon})});return d}),
     // كل شيء باسمه قريب منك
-    [OV(`[out:json][timeout:20];nwr[${K}~"${re}",i](around:30000,${c[0]},${c[1]});out center 80;`),d=>fromOverpass(d,"بالقرب منك")],
-    // المدن والأحياء والقرى والشوارع والمحلات والمعالم في كل العراق
-    [OV(`[out:json][timeout:25];(node["place"][${K}~"${re}",i](${BB});nwr["amenity"][${K}~"${re}",i](${BB});nwr["shop"][${K}~"${re}",i](${BB});`+
-        `nwr["tourism"][${K}~"${re}",i](${BB});nwr["leisure"][${K}~"${re}",i](${BB});way["highway"][${K}~"${re}",i](${BB}););out center 80;`),d=>fromOverpass(d,"العراق")]
+    ()=>overpass(`[out:json][timeout:12];nwr[${K}~"${re}",i](around:30000,${c[0]},${c[1]});out center 80;`,sig,12000).then(d=>{fromOverpass(d,"بالقرب منك");return d}),
+    // المدن والأحياء والقرى والشوارع والمحلات والمعالم في كل العراق (على خادم ثانٍ لتسريع البحث)
+    ()=>overpass(`[out:json][timeout:15];(node["place"][${K}~"${re}",i](${BB});nwr["amenity"][${K}~"${re}",i](${BB});nwr["shop"][${K}~"${re}",i](${BB});`+
+        `nwr["tourism"][${K}~"${re}",i](${BB});nwr["leisure"][${K}~"${re}",i](${BB});way["highway"][${K}~"${re}",i](${BB}););out center 80;`,sig,16000,true).then(d=>{fromOverpass(d,"العراق");return d})
   ];
-  if(qn!==q.trim().toLowerCase())jobs.push([`https://photon.komoot.io/api/?limit=25&q=${encodeURIComponent(qn)}&lat=${c[0]}&lon=${c[1]}&bbox=${IQ_BBOX}`,fromPhoton]);
+  if(qn!==q.trim().toLowerCase())jobs.push(()=>getJSON(`https://photon.komoot.io/api/?limit=25&q=${encodeURIComponent(qn)}&lat=${c[0]}&lon=${c[1]}&bbox=${IQ_BBOX}`,sig,6000).then(d=>{fromPhoton(d);return d}));
   let done=0, ok=0;
   if(all.length)showResults(all,c,"pin",q,true);
-  await Promise.all(jobs.map(([url,parse])=>getJSON(url,sig).then(d=>{
-    if(sig.aborted)return;
-    if(d){ok++;try{parse(d)}catch(e){}}
-    done++;
-    if(done<jobs.length){if(all.length)showResults(all,c,"pin",q,true)}
-    else if(!ok&&!all.length)loading("تعذّر الاتصال بخدمة البحث، تحقق من الإنترنت ثم اضغط بحث مرة أخرى");
-    else showResults(all,c,"pin",q,false);
-  }).catch(()=>{})));
+  try{
+    await Promise.all(jobs.map(j=>j().then(d=>{
+      if(sig.aborted)return;
+      if(d)ok++;
+      done++;
+      if(done<jobs.length){if(all.length)showResults(all,c,"pin",q,true)}
+      else if(!ok&&!all.length)loading("تعذّر الاتصال بخدمة البحث، تحقق من الإنترنت ثم اضغط بحث مرة أخرى");
+      else{showResults(all,c,"pin",q,false);if(ok)searchCache.set(ck,all.slice())}
+    })));
+  }catch(e){}
 }
 async function runCategory(filter,label,icon){
   loading(`جارٍ البحث عن ${label} بالقرب منك…`);
@@ -799,15 +884,16 @@ async function runCategory(filter,label,icon){
   const c=center();
   try{
     let res=null;
-    for(const rad of [3000,10000,30000]){
-      res=await getJSON(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(`[out:json][timeout:15];${filter}(around:${rad},${c[0]},${c[1]});out center 60;`)}`,sig);
+    for(const rad of [5000,30000]){
+      res=await overpass(`[out:json][timeout:12];${filter}(around:${rad},${c[0]},${c[1]});out center 60;`,sig,12000);
       if(res&&res.elements&&res.elements.length>=3)break;
     }
-    const list=((res&&res.elements)||[]).map(e=>{const t=e.tags||{};return{
+    if(!res){loading("تعذّر البحث، تحقق من الاتصال بالإنترنت");return}
+    const list=res.elements.map(e=>{const t=e.tags||{};return{
       name:t["name:ar"]||t.name||`${label} (بدون اسم)`,sub:[t["addr:street"],t["addr:city"],t.opening_hours?"ساعات العمل: "+t.opening_hours:""].filter(Boolean).join("، "),
       lat:e.lat||(e.center&&e.center.lat),lon:e.lon||(e.center&&e.center.lon)}}).filter(x=>x.lat);
     showResults(list,c,icon);
-  }catch(err){if(err.name!=="AbortError")loading("تعذّر البحث، تحقق من الاتصال بالإنترنت")}
+  }catch(err){}
 }
 $("q").addEventListener("focus",()=>{if(!$("q").value.trim())showCats()});
 $("q").addEventListener("input",()=>{const q=$("q").value.trim();$("clearQ").hidden=!q;if(!q)showCats()});
@@ -835,6 +921,7 @@ function setDest(ll,name){
   destMarker=L.marker(ll,{icon:L.divIcon({className:"",html:'<div class="dst"></div>',iconSize:[20,20],iconAnchor:[10,10]})}).addTo(map);
   $("rDest").textContent=name;$("rTime").textContent="…";$("rDist").textContent="";$("rFirst").textContent="";$("routeWarn").innerHTML="";
   showPanel("routing");
+  document.body.classList.add("focus-route");
   buildRoute(true);
 }
 async function nameOf(ll){
@@ -940,13 +1027,15 @@ async function buildRoute(fit){
     routeLine=L.layerGroup([
       L.polyline([me,pts[0]],{color:"#33c3ff",weight:4,dashArray:"2 9",lineCap:"round"}),
       L.polyline([pts[pts.length-1],dest],{color:"#ff5a4e",weight:4,dashArray:"2 9",lineCap:"round"}),
-      L.polyline(pts,{color:"#0b5f8f",weight:11,opacity:.95,lineJoin:"round"}),
-      L.polyline(pts,{color:"#33c3ff",weight:7,lineJoin:"round"})
+      L.polyline(pts,{color:"#33c3ff",weight:22,opacity:.18,lineJoin:"round",lineCap:"round"}),
+      L.polyline(pts,{color:"#04324d",weight:13,opacity:1,lineJoin:"round",lineCap:"round"}),
+      L.polyline(pts,{color:"#3ccbff",weight:8,lineJoin:"round",lineCap:"round"})
     ]).addTo(map);
     showEta(rt.distance,rt.duration);
     const first=steps[1]?instr(steps[1]).t:"";
     $("rFirst").textContent=steps[0]&&steps[0].name?`انطلق من ${steps[0].name}${first?"، ثم "+first:""}`:first;
     const near=reports.filter(r=>pts.some((p,i)=>i%5===0&&map.distance(p,[r.lat,r.lng])<80));
+    routeNear=new Set(near.map(r=>r.id));drawReports();
     $("routeWarn").innerHTML=near.map(r=>`<span class="chip"><i style="background:${TYPES[r.k].c}"></i>${TYPES[r.k].n} على مسارك</span>`).join("");
     updateSheetH();
     if(navigating)setBanner();
@@ -956,6 +1045,7 @@ async function buildRoute(fit){
 function stopRoute(){
   setNav(false);dest=null;steps=[];routePts=[];
   if(routeLine)routeLine.remove();if(destMarker)destMarker.remove();routeLine=destMarker=null;
+  document.body.classList.remove("focus-route");routeNear=null;drawReports();
   showPanel("idle");
 }
 function setNav(v){
@@ -1030,9 +1120,9 @@ function drawPlaces(){
   if(D.work)mk(D.work,"#1593d6","work");
   D.places.forEach(p=>{const c=catOf(p.cat);mk(p,c[2],c[1])});
 }
-function exitAdding(){$("cross").hidden=true;showPanel(dest?"routing":"idle")}
+function exitAdding(){$("cross").hidden=true;document.body.classList.toggle("focus-route",!!dest);showPanel(dest?"routing":"idle")}
 $("qAdd").onclick=()=>{
-  $("apName").value="";$("apCat").value="pin";showPanel("adding");$("cross").hidden=false;
+  $("apName").value="";$("apCat").value="pin";showPanel("adding");$("cross").hidden=false;document.body.classList.remove("focus-route");
   setFollow(false);if(me)map.setView(me,17);
 };
 $("apCancel").onclick=exitAdding;
@@ -1079,6 +1169,40 @@ try{navigator.permissions.query({name:"geolocation"}).then(st=>{
   f();st.onchange=f;
 }).catch(()=>{})}catch(e){}
 
+/* ---------- تثبيت التطبيق (أندرويد و iOS) ---------- */
+let installEvt=null;
+const isStandalone=()=>{try{return matchMedia("(display-mode: standalone)").matches||navigator.standalone===true}catch(e){return false}};
+const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+function paintInstall(){
+  const inst=isStandalone();
+  $("installBar").hidden=inst||!!D.hideInstall;
+  $("sInstallGroup").hidden=inst;
+  updateSheetH();
+}
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();installEvt=e;paintInstall()});
+window.addEventListener("appinstalled",()=>{installEvt=null;$("installSheet").hidden=true;toast("تم تثبيت Rose بنجاح");paintInstall()});
+function stepsHTML(list){return list.map((x,i)=>`<div class="step"><span class="n">${i+1}</span><span class="t">${x[0]}</span>${x[1]?`<span class="k">${ic(x[1])}</span>`:""}</div>`).join("")}
+async function doInstall(){
+  if(isStandalone()){toast("Rose مثبّت بالفعل على هاتفك");return}
+  if(installEvt){
+    try{installEvt.prompt();const r=await installEvt.userChoice;if(r&&r.outcome==="accepted")toast("جارٍ تثبيت Rose…")}catch(e){}
+    installEvt=null;paintInstall();return;
+  }
+  if(isIOS){
+    $("instHint").textContent="على iPhone يتم التثبيت من متصفح Safari بثلاث خطوات:";
+    $("instSteps").innerHTML=stepsHTML([["اضغط زر المشاركة في شريط Safari","iosshare"],["اختر «إضافة إلى الشاشة الرئيسية»","plussq"],["اضغط «إضافة» في الأعلى",""]]);
+  }else{
+    $("instHint").textContent="أضف Rose إلى الشاشة الرئيسية من قائمة المتصفح:";
+    $("instSteps").innerHTML=stepsHTML([["اضغط زر القائمة ⋮ أعلى المتصفح","dots"],["اختر «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية»","download"],["اضغط «تثبيت»",""]]);
+  }
+  $("installSheet").hidden=false;
+}
+$("installBtn").onclick=doInstall;
+$("sInstall").onclick=()=>{$("settings").hidden=true;doInstall()};
+$("installX").onclick=()=>{D.hideInstall=true;saveD();paintInstall()};
+$("instClose").onclick=()=>$("installSheet").hidden=true;
+$("installSheet").onclick=e=>{if(e.target.id==="installSheet")$("installSheet").hidden=true};
+
 $("openSettings").onclick=()=>{$("results").hidden=true;renderSettings();$("settings").hidden=false};
 $("sBack").onclick=()=>$("settings").hidden=true;
 $("sSound").onchange=()=>{D.sound=$("sSound").checked;saveD();syncSound()};
@@ -1095,7 +1219,7 @@ $("sClear").onclick=()=>{
 window.addEventListener("popstate",()=>{});
 
 /* ---------- البدء ---------- */
-initBase();applyTheme();syncSound();setInterval(applyTheme,600000);
+initBase();applyTheme();syncSound();paintInstall();setInterval(applyTheme,600000);
 drawPlaces();loadReports();drawReports();renderStats();updateSheetH();
 setTimeout(()=>{$("splash").classList.add("out");setTimeout(()=>$("splash").remove(),500);if(D.onboarded)startGeo();else showPerm()},1300);
 setInterval(()=>{const n=reports.length;loadReports();if(reports.length!==n){drawReports();renderStats()}},60000);
