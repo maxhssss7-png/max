@@ -499,7 +499,7 @@ function say(text){
   try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance("حيدر أبو فاطمة، "+text);u.lang="ar-SA";if(arVoice)u.voice=arVoice;u.rate=1;setTimeout(()=>speechSynthesis.speak(u),450)}catch(e){}
 }
 function syncSound(){soundOn=D.sound;$("btnSound").textContent=soundOn?"🔊":"🔇";$("btnSound").classList.toggle("on",soundOn)}
-$("btnSound").onclick=()=>{D.sound=!D.sound;saveD();syncSound();if(soundOn)say("الصوت شغّال عمي");else if(window.speechSynthesis)speechSynthesis.cancel()};
+$("btnSound").onclick=()=>{D.sound=!D.sound;saveD();syncSound();if(soundOn)say("تم فتح الصوت، أبو فاطمة لديكم، لا خوف عليكم");else if(window.speechSynthesis)speechSynthesis.cancel()};
 syncSound();
 
 /* ---------- تعليمات الطريق بالعربي ---------- */
