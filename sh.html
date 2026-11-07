@@ -499,7 +499,7 @@ function say(text){
   try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang="ar-SA";if(arVoice)u.voice=arVoice;u.rate=1;setTimeout(()=>speechSynthesis.speak(u),450)}catch(e){}
 }
 function syncSound(){soundOn=D.sound;$("btnSound").textContent=soundOn?"🔊":"🔇";$("btnSound").classList.toggle("on",soundOn)}
-$("btnSound").onclick=()=>{D.sound=!D.sound;saveD();syncSound();if(soundOn)say("الصوت شغّال");else if(window.speechSynthesis)speechSynthesis.cancel()};
+$("btnSound").onclick=()=>{D.sound=!D.sound;saveD();syncSound();if(soundOn)say("الصوت شغّال عمي");else if(window.speechSynthesis)speechSynthesis.cancel()};
 syncSound();
 
 /* ---------- تعليمات الطريق بالعربي ---------- */
@@ -555,21 +555,21 @@ function setBanner(){
   const nx=steps[stepIdx+1];$("bNext").textContent=nx?`بعدها: ${instr(nx).t}`:"";
 }
 function navTick(){
-  if(map.distance(me,dest)<35){say("وصلت إلى وجهتك");toast("وصلت إلى وجهتك");stopRoute();return}
+  if(map.distance(me,dest)<35){say("وصلنا عمي، الحمد لله على السلامة");toast("وصلت إلى وجهتك");stopRoute();return}
   // خرجت عن الطريق؟ نعيد الحساب
   if(Date.now()-lastOffCheck>8000&&routePts.length){
     lastOffCheck=Date.now();
     let min=1e9;for(let i=0;i<routePts.length;i+=2){const dd=map.distance(me,routePts[i]);if(dd<min)min=dd}
-    if(min>60){say("جاري إعادة حساب الطريق");buildRoute(false);return}
+    if(min>60){say("عمي طلعت من الطريق، لحظة أشوفلك طريق ثاني");buildRoute(false);return}
   }
   const st=steps[stepIdx];if(!st){setBanner();return}
   const d=map.distance(me,[st.maneuver.location[1],st.maneuver.location[0]]);
-  const key=stepIdx, t=instr(st).t;
+  const key=stepIdx, t=iraqi(st);
   updateEta();
   if(d<25){ stepIdx++; setBanner(); return; }
-  if(d<60&&!spoken[key+"n"]){spoken[key+"n"]=1;say(`الآن ${t}`)}
+  if(d<60&&!spoken[key+"n"]){spoken[key+"n"]=1;say(`هسه ${t}`)}
   else if(d<200&&d>=60&&!spoken[key+"m"]){spoken[key+"m"]=1;say(`بعد ${Math.round(d/10)*10} متر ${t}`)}
-  else if(d<600&&d>=300&&!spoken[key+"f"]){spoken[key+"f"]=1;say(`بعد ${fmtDist(Math.round(d/50)*50).replace("م","متر").replace("كم","كيلومتر")} ${t}`)}
+  else if(d<600&&d>=300&&!spoken[key+"f"]){spoken[key+"f"]=1;say(`عمي بعد ${fmtDist(Math.round(d/50)*50).replace("كم","كيلو").replace(/ م$/," متر")} ${t}`)}
   setBanner();
 }
 
@@ -643,8 +643,8 @@ $("btnGo").onclick=()=>{
   $("btnGo").textContent=navigating?"إيقاف التوجيه":"انطلق";
   if(navigating){
     follow=true;$("btnFollow").classList.add("on");if(me)map.setView(me,17);
-    const t=steps[1]?instr(steps[1]).t:"";
-    say(`أهلاً بك في الشويلات. بدأ التوجيه إلى ${$("rDest").textContent}. ${t}`);
+    const t=steps[1]?iraqi(steps[1]):"";
+    say(`هلا بيك بالشويلات عمي، يلا نمشي على ${$("rDest").textContent}. ${t}`);
     setBanner();keepAwake();
   } else {$("banner").hidden=true;releaseWake();if(window.speechSynthesis)speechSynthesis.cancel()}
 };
